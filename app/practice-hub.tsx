@@ -1,11 +1,16 @@
 "use client";
 
-import { BookOpen, ChevronRight, Clock3, Search, Target } from "lucide-react";
+import { BookOpen, Clock3, GitBranch, Search, Target } from "lucide-react";
 import { useRef } from "react";
+import dynamic from "next/dynamic";
 import { lessons, type Case, type Level } from "./catalog";
 import { Glyph, Heading } from "./learning";
 import { cases, caseSearchText, matchesSearch } from "./problems";
 import { topics, type Topic } from "./problems/types";
+
+const AnswerArchitecture = dynamic(() => import("./answer-architecture"), {
+  loading: () => <p role="status">Loading design diagram…</p>,
+});
 
 const PAGE_SIZE = 18;
 const levels = ["All levels", "Beginner", "Intermediate", "Advanced"] as const;
@@ -103,18 +108,13 @@ export function WorkedSolution({ item }: { item: Case }) {
         <Heading title={item.title} description="Worked answer" />
         <a className="button primary" href={`#design/${item.id}`}><Target size={16} /> Practice this problem</a>
       </div>
+      <section className="panel reading-card architecture-card" aria-labelledby="high-level-design">
+        <h2 id="high-level-design"><GitBranch size={19} aria-hidden="true" />High-level design</h2>
+        <AnswerArchitecture title={item.title} connections={answer.diagram} />
+        <p>{answer.design}</p>
+      </section>
       <div className="solution-layout">
         <article className="panel reading-card solution">
-          <section>
-            <h2>System architecture</h2>
-            <ol className="solution-flow" aria-label="System component flow">
-              {answer.path.map((component, index) => <li key={component}>
-                <span>{component}</span>
-                {index < answer.path.length - 1 && <ChevronRight size={14} aria-hidden="true" />}
-              </li>)}
-            </ol>
-            <p>{answer.design}</p>
-          </section>
           <section><h2>Capacity estimate</h2><p>{answer.capacity}</p></section>
           <section>
             <h2>API and data model</h2>
@@ -123,6 +123,14 @@ export function WorkedSolution({ item }: { item: Case }) {
               <div><dt>Storage</dt><dd>{answer.data}</dd></div>
             </dl>
           </section>
+          {answer.implementation && (
+            <section>
+              <h2>Token-bucket implementation</h2>
+              <dl className="solution-data">
+                {answer.implementation.map(({ label, text }) => <div key={label}><dt>{label}</dt><dd>{text}</dd></div>)}
+              </dl>
+            </section>
+          )}
           <section><h2>Reliability and failure handling</h2><p>{answer.reliability}</p></section>
           <section><h2>Trade-offs</h2><p>{answer.tradeoff}</p></section>
         </article>

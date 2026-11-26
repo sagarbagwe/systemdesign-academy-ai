@@ -13,9 +13,13 @@ export const topics = {
 
 export type Topic = keyof typeof topics;
 
+export type FlowStyle = "sync" | "async" | "reject";
+export type DesignConnection = readonly [from: string, to: string, action: string, style?: FlowStyle];
+
 export type WorkedAnswer = {
   capacity: string;
-  path: readonly string[];
+  diagram: readonly DesignConnection[];
+  implementation?: readonly { label: string; text: string }[];
   design: string;
   api: string;
   data: string;
