@@ -5,6 +5,11 @@ export const distributed: Problem[] = [
     id: "event-streaming", title: "Design an Event Streaming Platform", level: "Advanced", aliases: ["Kafka", "durable log", "pub sub"], concepts: ["Partitioned log", "Offsets", "Replication"],
     scenario: "Many teams publish and replay ordered streams of product events.", requirements: ["Append events durably and read by offset.", "Scale producers and consumer groups.", "Define delivery and ordering boundaries."],
     capacity: "At 250,000 events/s and 400 bytes each, ingest about 100 MB/s or 8.64 TB/day of payload. Three replicas write roughly three times the bytes.",
+    walkthrough: {
+      entities: ["Topic", "Partition", "Event", "Consumer offset"],
+      qualityGoal: "Preserve durable acknowledgments and ordering within a partition through elections and consumer retries.",
+      flow: ["Append by key", "Replicate records", "Ack committed offset", "Fetch from offset", "Commit progress"],
+    },
     diagram: [
       ["Producer", "Partition leader", "Append by key"],
       ["Partition leader", "Replica log", "Replicate records"],
@@ -24,6 +29,11 @@ export const distributed: Problem[] = [
     id: "job-queue", title: "Design a Distributed Job Queue", level: "Intermediate", aliases: ["SQS", "background tasks"], concepts: ["Visibility timeout", "Retry policy", "Dead-letter queue"],
     scenario: "A service schedules independent background jobs across worker pools.", requirements: ["Persist jobs until a worker processes them.", "Retry failures with clear state.", "Protect tenants from noisy neighbors."],
     capacity: "At 1,000 jobs/s and an average 0.5 seconds of worker time, about 500 concurrent worker slots are busy before headroom and retries.",
+    walkthrough: {
+      entities: ["Job", "Worker", "Lease", "Attempt"],
+      qualityGoal: "Retain pending work through worker failure while bounding retries and per-tenant queue delay.",
+      flow: ["Submit durable work", "Persist pending job", "Lease job", "Complete with lease"],
+    },
     diagram: [
       ["Job producer", "Job API", "Submit durable work"],
       ["Job API", "Job queue", "Persist pending job", "async"],
@@ -44,6 +54,11 @@ export const distributed: Problem[] = [
     id: "distributed-cron", title: "Design a Distributed Cron Scheduler", level: "Advanced", concepts: ["Time buckets", "Leases", "Misfire policy"],
     scenario: "Customers define recurring and one-off jobs in different time zones.", requirements: ["Trigger jobs near their scheduled times.", "Recover missed runs after outages.", "Avoid duplicate dispatch for one scheduled occurrence."],
     capacity: "One million hourly jobs average 278 triggers/s, but on-the-hour schedules may create much larger bursts. Store and inspect the next due time.",
+    walkthrough: {
+      entities: ["Schedule rule", "Occurrence", "Shard lease", "Outbox event"],
+      qualityGoal: "Trigger eligible runs near their scheduled time and place a bound on catch-up after outages.",
+      flow: ["Create recurring rule", "Save rule and next run", "Claim due schedules", "Commit occurrence", "Dispatch once per key", "Run after admission"],
+    },
     diagram: [
       ["Customer", "Schedule API", "Create recurring rule"],
       ["Schedule API", "Due-time database", "Save rule and next run"],
@@ -63,6 +78,11 @@ export const distributed: Problem[] = [
     id: "distributed-lock", title: "Design Distributed Leases and Fencing", level: "Advanced", concepts: ["Lease expiry", "Fencing tokens", "Leader election"],
     scenario: "Workers need temporary exclusive ownership while replacing shared dataset versions.", requirements: ["Acquire and renew a lease.", "Reject writes from expired owners.", "Recover automatically after a holder fails."],
     capacity: "With 20,000 leases renewed every five seconds, the control plane sees about 4,000 renewals/s. Keep lease storage separate from high-volume payload operations.",
+    walkthrough: {
+      entities: ["Resource", "Lease", "Holder", "Fencing token"],
+      qualityGoal: "Reject writes from an expired holder even if that worker resumes after a long pause.",
+      flow: ["Acquire or renew", "Bump fencing token", "Return current token", "Write with token", "Compare writer token"],
+    },
     diagram: [
       ["Job worker", "Lease service", "Acquire or renew"],
       ["Lease service", "Consistent lease store", "Bump fencing token"],
@@ -82,6 +102,11 @@ export const distributed: Problem[] = [
     id: "distributed-transaction", title: "Design a Cross-Service Order Saga", level: "Advanced", concepts: ["Sagas", "Compensation", "Transactional outbox"],
     scenario: "An order coordinates inventory, billing and delivery without one shared database.", requirements: ["Track a visible order state.", "Recover from failed and delayed steps.", "Prevent duplicate payment and compensation."],
     capacity: "Two thousand orders/minute with four external steps require at least 133 step executions/s before retries. Give expensive providers separate budgets.",
+    walkthrough: {
+      entities: ["Order", "Saga instance", "Step receipt", "Compensation"],
+      qualityGoal: "Preserve a recoverable, auditable outcome after partial failure without duplicating financial effects.",
+      flow: ["Start pending order", "Save step state", "Reserve stock", "Authorize", "Confirm eligibility"],
+    },
     diagram: [
       ["Order API", "Saga coordinator", "Start pending order"],
       ["Saga coordinator", "Saga state DB", "Save step state"],
@@ -101,6 +126,11 @@ export const distributed: Problem[] = [
     id: "distributed-tracing", title: "Design Distributed Tracing", level: "Intermediate", aliases: ["OpenTelemetry", "Jaeger"], concepts: ["Span context", "Sampling", "Trace assembly"],
     scenario: "Engineers investigate cross-service latency across many teams.", requirements: ["Propagate trace context across calls and jobs.", "Collect and query related spans.", "Control cost and protect sensitive metadata."],
     capacity: "Twenty thousand traces/s with ten spans each means 200,000 spans/s at full capture. At 500 bytes/span that is about 100 MB/s before indexing.",
+    walkthrough: {
+      entities: ["Trace", "Span", "Sampling rule", "Retention class"],
+      qualityGoal: "Keep telemetry off the critical request path and retain enough evidence for rare failures.",
+      flow: ["Export spans", "Group by trace ID", "Retain traces", "Lookup trace", "Fetch by trace ID"],
+    },
     diagram: [
       ["Instrumented services", "Span collectors", "Export spans", "async"],
       ["Span collectors", "Trace-aware sampler", "Group by trace ID", "async"],
@@ -120,6 +150,11 @@ export const distributed: Problem[] = [
     id: "metrics-alerting", title: "Design Metrics and Alerting", level: "Intermediate", aliases: ["Prometheus", "monitoring system"], concepts: ["Windowing", "Alert deduplication", "SLO burn rate"],
     scenario: "A platform alerts engineers when user-facing availability falls.", requirements: ["Collect numeric metrics with labels.", "Evaluate alert windows and route incidents.", "Handle delayed samples and duplicate notifications."],
     capacity: "Two hundred thousand active series scraped every 15 seconds produce roughly 13,300 samples/s. Label cardinality can be more expensive than samples.",
+    walkthrough: {
+      entities: ["Time series", "Rule", "Alert group", "Incident state"],
+      qualityGoal: "Distinguish missing samples from healthy results and avoid duplicate on-call notifications.",
+      flow: ["Expose samples", "Save samples", "Query alert windows", "State changes", "Group and notify"],
+    },
     diagram: [
       ["Metrics targets", "Scrape collectors", "Expose samples"],
       ["Scrape collectors", "Time-series database", "Save samples", "async"],
@@ -139,6 +174,11 @@ export const distributed: Problem[] = [
     id: "log-ingestion", title: "Design a Centralized Log Pipeline", level: "Intermediate", concepts: ["Batching", "Redaction", "Backpressure"],
     scenario: "Thousands of services export logs for investigation and audit.", requirements: ["Accept logs through producer spikes.", "Retain searchable and archive tiers.", "Redact sensitive fields and isolate tenants."],
     capacity: "Ten thousand nodes each emitting 100 KB/minute generate about 16.7 MB/s before bursts. Measure compression and producer buffering.",
+    walkthrough: {
+      entities: ["Log event", "Batch", "Tenant", "Stream offset"],
+      qualityGoal: "Protect producers during sink outages and preserve required redaction before persistence.",
+      flow: ["Collect lines", "Send bounded batch", "Commit receipt", "Index recent window", "Publish searchable data"],
+    },
     diagram: [
       ["Service logs", "Local agent", "Collect lines"],
       ["Local agent", "Redaction and ingest", "Send bounded batch"],
@@ -159,6 +199,11 @@ export const distributed: Problem[] = [
     id: "deployment-pipeline", title: "Design a CI/CD Deployment Platform", level: "Intermediate", concepts: ["Immutable artifacts", "Gates", "Rollback"],
     scenario: "A platform builds and deploys many services safely across environments.", requirements: ["Build a reproducible artifact from a commit.", "Promote it through review and canary gates.", "Roll back and audit changes."],
     capacity: "Three thousand CI jobs/day at five worker-minutes each consume 15,000 worker-minutes. Queue pressure clusters around workdays and merge bursts.",
+    walkthrough: {
+      entities: ["Build run", "Artifact digest", "Deployment", "Health gate"],
+      qualityGoal: "Promote the tested artifact consistently and halt a rollout before a failing canary spreads.",
+      flow: ["Schedule job", "Run isolated build", "Store immutable digest", "Promote same digest", "Roll out small cohort", "Observe metrics", "Pass checks"],
+    },
     diagram: [
       ["Git commit", "Build queue", "Schedule job", "async"],
       ["Build queue", "Build worker", "Run isolated build", "async"],
@@ -180,6 +225,11 @@ export const distributed: Problem[] = [
     id: "backup-restore", title: "Design Backup and Point-in-Time Restore", level: "Advanced", concepts: ["Snapshots", "WAL archiving", "RPO and RTO"],
     scenario: "A SaaS protects customer records against corruption and accidental deletion.", requirements: ["Capture consistent backups and incremental changes.", "Restore to a selected point.", "Demonstrate recovery objectives."],
     capacity: "Restoring a 2 TB snapshot at a sustained 400 MB/s takes at least about 83 minutes for transfer alone. Budget log replay, verification and routing separately.",
+    walkthrough: {
+      entities: ["Snapshot", "Log sequence", "Restore job", "Recovery target"],
+      qualityGoal: "Verify recoverability against the agreed data-loss and recovery-time targets with actual restore drills.",
+      flow: ["Capture base snapshot", "Upload ordered changes", "Save immutable snapshot", "Load snapshot", "Replay to target time", "Verify restored state", "Check invariants"],
+    },
     diagram: [
       ["Primary database", "Snapshot worker", "Capture base snapshot"],
       ["Primary database", "WAL archive", "Upload ordered changes", "async"],
@@ -200,6 +250,11 @@ export const distributed: Problem[] = [
     id: "regional-recovery", title: "Design Multi-Region Service Failover", level: "Advanced", concepts: ["RTO", "Fencing", "Degraded mode"],
     scenario: "An application must stay usable through a regional failure.", requirements: ["Define how to detect and switch traffic.", "Preserve durable writes within a stated objective.", "Recover without split-brain."],
     capacity: "If normal load is 30,000 requests/s spread across two regions, one surviving region needs close to 30,000 requests/s capacity or a defined admission plan.",
+    walkthrough: {
+      entities: ["Region", "Writer epoch", "Replication checkpoint", "Routing policy"],
+      qualityGoal: "Avoid split-brain and define how much traffic and data loss the surviving region can tolerate.",
+      flow: ["Report regional failure", "Fence old writer", "Switch routing", "Route after promotion"],
+    },
     diagram: [
       ["Global ingress", "Primary region", "Route normal traffic"],
       ["Primary region", "Standby region", "Replicate state", "async"],
@@ -219,6 +274,11 @@ export const distributed: Problem[] = [
     id: "config-rollout", title: "Design Safe Dynamic Configuration Rollout", level: "Intermediate", concepts: ["Canaries", "Schema compatibility", "Versioned watches"],
     scenario: "A platform changes runtime settings across tens of thousands of instances.", requirements: ["Validate and distribute changes.", "Canary risky updates and roll them back.", "Track effective versions by cohort."],
     capacity: "Sixty thousand instances polling every minute generate about 1,000 polls/s. A 5 MB snapshot per poll would be wasteful, so use conditional reads and incremental delivery.",
+    walkthrough: {
+      entities: ["Config revision", "Compatibility rule", "Cohort", "Acknowledgment"],
+      qualityGoal: "Prevent incompatible configuration from reaching the whole fleet and measure whether rollback propagated.",
+      flow: ["Submit revision", "Save valid snapshot", "Fetch next version", "Serve revision", "Health and acks", "Expand after checks"],
+    },
     diagram: [
       ["Config author", "Validation API", "Submit revision"],
       ["Validation API", "Versioned config store", "Save valid snapshot"],

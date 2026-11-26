@@ -5,6 +5,11 @@ export const commerce: Problem[] = [
     id: "ecommerce-store", title: "Design an E-Commerce Marketplace", level: "Advanced", aliases: ["Amazon", "Flipkart", "shopping platform"], concepts: ["Catalog search", "Cart", "Orders"],
     scenario: "Buyers search products, add offers to carts and place orders across sellers.", requirements: ["Browse and search listings.", "Validate prices and stock at checkout.", "Track each seller's fulfillment independently."],
     capacity: "Ten million browse requests/day and 100,000 orders/day imply a 100:1 browse-to-order ratio. Size search differently from transactional checkout.",
+    walkthrough: {
+      entities: ["Product", "Offer", "Cart", "Order", "Seller shipment"],
+      qualityGoal: "Keep browsing responsive while enforcing current price and inventory at the point of checkout.",
+      flow: ["Place order", "Reserve stock", "Authorize amount", "Commit order", "Publish orders"],
+    },
     diagram: [
       ["Shopper", "Catalog API", "Browse or search"],
       ["Catalog API", "Search index", "Read catalog projection"],
@@ -25,6 +30,11 @@ export const commerce: Problem[] = [
     id: "checkout", title: "Design Checkout and Order Confirmation", level: "Advanced", concepts: ["Price quotes", "Payment authorization", "Idempotency"],
     scenario: "Customers submit a cart with tax, shipping and discount calculations.", requirements: ["Create an expiring total quote.", "Confirm only accepted totals.", "Handle duplicate requests and partial failure."],
     capacity: "Peak 2,000 checkouts/s with two provider operations each means up to 4,000 provider calls/s before retry. Enforce provider budgets.",
+    walkthrough: {
+      entities: ["Cart revision", "Quote", "Checkout attempt", "Order"],
+      qualityGoal: "Charge only the accepted price and keep duplicate confirmation or processor timeouts from creating duplicate orders.",
+      flow: ["Price cart", "Save expiring total", "Confirm quote", "Validate quote", "Reserve items", "Authorize payment", "Store pending or confirmed"],
+    },
     diagram: [
       ["Shopper", "Quote API", "Price cart"],
       ["Quote API", "Quotes database", "Save expiring total"],
@@ -45,6 +55,11 @@ export const commerce: Problem[] = [
     id: "inventory", title: "Design Inventory Reservation", level: "Advanced", concepts: ["Atomic reservations", "Stock invariants", "Reconciliation"],
     scenario: "Several channels sell the same limited stock from fulfillment centers.", requirements: ["Reserve and release available stock.", "Prevent confirmed quantity from exceeding supply.", "Handle reserve expiry and stock adjustments."],
     capacity: "A 10,000 order/s drop for a single SKU is a hot counter even if the full service is sharded. Benchmark per-hot-item capacity.",
+    walkthrough: {
+      entities: ["Stock balance", "SKU", "Location", "Reservation"],
+      qualityGoal: "Prevent oversells during hot-SKU bursts and serialize expiry against confirmation.",
+      flow: ["Reserve or confirm", "Atomically claim stock", "Assigned or unavailable"],
+    },
     diagram: [
       ["Sales channel", "Inventory API", "Reserve or confirm"],
       ["Inventory API", "Stock database", "Atomically claim stock"],
@@ -64,6 +79,11 @@ export const commerce: Problem[] = [
     id: "payments", title: "Design a Distributed Payment System", level: "Advanced", aliases: ["Stripe", "payment processing", "UPI"], concepts: ["Idempotency", "Provider reconciliation", "Ledger"],
     scenario: "A product accepts authorizations, captures and refunds through external processors.", requirements: ["Track states and amounts durably.", "Prevent duplicate captures and refunds.", "Reconcile provider events and settlements."],
     capacity: "One million payments/day average about 12/s, but a 50× peak reaches about 580/s. Budget processor calls and asynchronous confirmations separately.",
+    walkthrough: {
+      entities: ["Payment intent", "Operation", "Provider reference", "Ledger posting"],
+      qualityGoal: "Prevent duplicate captures or refunds, and make uncertain provider outcomes recoverable by reconciliation.",
+      flow: ["Create, capture, refund", "Save durable intent", "Stable operation ID", "Signed event", "Deduplicate event", "Post balanced entries"],
+    },
     diagram: [
       ["Merchant", "Payment API", "Create, capture, refund"],
       ["Payment API", "Payment workflow DB", "Save durable intent"],
@@ -84,6 +104,11 @@ export const commerce: Problem[] = [
     id: "payment-ledger", title: "Design a Double-Entry Ledger", level: "Advanced", aliases: ["wallet ledger", "bank ledger"], concepts: ["Balanced entries", "Audit", "Reversals"],
     scenario: "A platform records obligations, balances and payouts for merchants.", requirements: ["Record balanced transfers.", "Query available balances and history.", "Correct mistakes without deleting history."],
     capacity: "Two million transfers/day with two postings per transfer add four million entries/day. Large merchant accounts can concentrate writes.",
+    walkthrough: {
+      entities: ["Account", "Journal transaction", "Posting", "Balance"],
+      qualityGoal: "Enforce balanced entries and prevent concurrent spending from creating an invalid available balance.",
+      flow: ["Submit balanced postings", "Commit atomically", "Replay entries", "Store historical balance", "Read history"],
+    },
     diagram: [
       ["Payment event", "Ledger API", "Submit balanced postings"],
       ["Ledger API", "Journal and balances DB", "Commit atomically"],
@@ -103,6 +128,11 @@ export const commerce: Problem[] = [
     id: "fraud-review", title: "Design a Transaction Fraud Review System", level: "Advanced", concepts: ["Risk scoring", "Review workflow", "Feedback labels"],
     scenario: "A marketplace flags unusual orders for review while minimizing disruption to ordinary shoppers.", requirements: ["Score eligible transactions under a tight deadline.", "Route uncertain decisions to review.", "Learn from confirmed outcomes and audits."],
     capacity: "At 3,000 transactions/s with a 100 ms scoring budget, up to roughly 300 scoring requests can be in flight during steady peaks.",
+    walkthrough: {
+      entities: ["Transaction", "Feature snapshot", "Risk decision", "Review case"],
+      qualityGoal: "Meet the scoring deadline and retain the specific input and decision version needed to audit outcomes.",
+      flow: ["Evaluate within deadline", "Read decision inputs", "Record version and reasons", "Ambiguous decision", "Assign investigation", "Record outcome"],
+    },
     diagram: [
       ["Transaction", "Risk scoring API", "Evaluate within deadline"],
       ["Risk scoring API", "Feature store", "Read decision inputs"],
@@ -122,6 +152,11 @@ export const commerce: Problem[] = [
     id: "order-tracking", title: "Design Order Tracking", level: "Intermediate", concepts: ["Event ordering", "State projection", "Customer updates"],
     scenario: "A shopper wants a timeline across marketplace and carrier updates.", requirements: ["Show current order and shipment state.", "Handle duplicate and delayed carrier events.", "Send relevant notifications."],
     capacity: "Three million active shipments with eight updates each generate 24 million events over their lifetimes. Peak reads can cluster around delivery windows.",
+    walkthrough: {
+      entities: ["Order", "Shipment", "Carrier event", "Status projection"],
+      qualityGoal: "Avoid regressing delivery state after duplicate or out-of-order carrier events.",
+      flow: ["Send signed update", "Deduplicate and append", "Normalize event order", "Publish current status", "Serve timeline"],
+    },
     diagram: [
       ["Carrier", "Tracking ingest", "Send signed update"],
       ["Tracking ingest", "Tracking event log", "Deduplicate and append"],
@@ -141,6 +176,11 @@ export const commerce: Problem[] = [
     id: "promotion-engine", title: "Design Pricing and Coupon Rules", level: "Intermediate", concepts: ["Rule evaluation", "Versioned quotes", "Usage limits"],
     scenario: "Merchants set promotions with targeting, stacking and redemption limits.", requirements: ["Calculate explainable totals.", "Enforce discount eligibility and limits.", "Keep confirmed prices stable through retries."],
     capacity: "At 5,000 quotes/s with 100 naive rule checks each, evaluate up to 500,000 checks/s. Preselect by shop, item and campaign window.",
+    walkthrough: {
+      entities: ["Campaign rule", "Coupon", "Quote", "Redemption"],
+      qualityGoal: "Keep quoted prices reproducible and enforce finite redemption limits at confirmation.",
+      flow: ["Quote cart", "Read active rules", "Persist exact total", "Confirm quote", "Reserve redemption"],
+    },
     diagram: [
       ["Cart client", "Rule evaluator", "Quote cart"],
       ["Rule evaluator", "Rule versions DB", "Read active rules"],
@@ -160,6 +200,11 @@ export const commerce: Problem[] = [
     id: "auctions", title: "Design an Online Auction", level: "Advanced", concepts: ["Ordering", "Fairness", "State machines"],
     scenario: "A marketplace sells unique items in timed auctions.", requirements: ["Accept bids above a minimum increment.", "Show current highest bid quickly.", "Close exactly once and select an eligible winner."],
     capacity: "Most auctions are quiet but a headline item may see 5,000 bid submissions/s. Measure per-auction serialized write limits.",
+    walkthrough: {
+      entities: ["Auction", "Bid", "Bidder", "Close result"],
+      qualityGoal: "Enforce fair ordering and the closing deadline using the same authority that commits the winner.",
+      flow: ["Submit timed bid", "Sequence by auction", "Commit winning state", "Publish committed event"],
+    },
     diagram: [
       ["Bidder", "Auction API", "Submit timed bid"],
       ["Auction API", "Bid authority", "Sequence by auction"],
@@ -179,6 +224,11 @@ export const commerce: Problem[] = [
     id: "grocery-delivery", title: "Design Grocery Delivery Slots", level: "Advanced", concepts: ["Slot capacity", "Fulfillment", "Substitution"],
     scenario: "Customers choose delivery windows and buy items with short shelf lives.", requirements: ["Show available windows and reserve capacity.", "Account for item substitutions.", "Track picking and delivery status."],
     capacity: "A fulfillment site with 60 vans completing six deliveries per window can support about 360 deliveries per window before buffers.",
+    walkthrough: {
+      entities: ["Delivery slot", "Slot hold", "Store stock", "Picking plan"],
+      qualityGoal: "Protect delivery capacity and local stock together while making substitution decisions recoverable.",
+      flow: ["Find delivery window", "Read projected availability", "Confirm cart and slot", "Reserve vehicle capacity", "Reserve items", "Dispatch picking plan"],
+    },
     diagram: [
       ["Shopper", "Slot API", "Find delivery window"],
       ["Slot API", "Slot capacity DB", "Read projected availability"],
@@ -198,6 +248,11 @@ export const commerce: Problem[] = [
     id: "fulfillment-routing", title: "Design Warehouse Fulfillment Routing", level: "Advanced", concepts: ["Allocation", "Constraint optimization", "Inventory locality"],
     scenario: "A retailer must choose where to ship each item in an order.", requirements: ["Select feasible fulfillment sites.", "Balance delivery speed and split shipments.", "Recover from incomplete inventory data."],
     capacity: "A 30-item order across 20 sites has up to 600 item-site candidates before pruning. Bound optimization time per request.",
+    walkthrough: {
+      entities: ["Order line", "Fulfillment site", "Allocation plan", "Stock receipt"],
+      qualityGoal: "Choose feasible allocations under a latency budget and revalidate any stale inventory before committing.",
+      flow: ["Score sites", "Advisory stock", "Delivery and split costs", "Commit chosen sites", "Validate and reserve"],
+    },
     diagram: [
       ["Order planner", "Allocation optimizer", "Score sites"],
       ["Inventory projection", "Allocation optimizer", "Advisory stock"],
@@ -217,6 +272,11 @@ export const commerce: Problem[] = [
     id: "matching-engine", title: "Design an Order Matching Engine", level: "Advanced", concepts: ["Price-time priority", "Deterministic replay", "Journal"],
     scenario: "A simulated exchange matches limit orders and supports cancellation.", requirements: ["Process orders in deterministic priority.", "Publish trades and book updates.", "Recover the exact accepted order state."],
     capacity: "For 250,000 commands/s across 100 instruments, uniform load averages 2,500/s per instrument. Benchmark a much hotter top instrument separately.",
+    walkthrough: {
+      entities: ["Instrument", "Limit order", "Execution", "Sequence number"],
+      qualityGoal: "Preserve deterministic price-time priority and reconstruct committed book state after sequencer failover.",
+      flow: ["Submit or cancel", "Validate and sequence", "Append accepted input", "Apply in order", "Update price-time levels", "Publish execution", "Snapshot and deltas"],
+    },
     diagram: [
       ["Trader client", "Order gateway", "Submit or cancel"],
       ["Order gateway", "Instrument sequencer", "Validate and sequence"],

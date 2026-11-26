@@ -1,7 +1,7 @@
 "use client";
 
 import {
-  BookOpen, ChevronRight, ChevronsUpDown, CircleHelp, CodeXml, Layers3, LayoutDashboard, Menu, Mic,
+  BookOpen, ChevronRight, ChevronsUpDown, CircleHelp, CodeXml, GraduationCap, Layers3, LayoutDashboard, Menu, Mic,
   Search, Settings2, Sparkles, Target, Waypoints, X,
 } from "lucide-react";
 import { useEffect, useRef, useState, type ReactNode } from "react";
@@ -12,12 +12,16 @@ import { CaseLibrary, Dashboard, Heading, Learning, LessonPage } from "./learnin
 import { blankDraft, draftId, emptyProgress, loadProgress, reviewDraft, storageKey, type Attempt, type Draft, type Mode, type Progress } from "./model";
 import { Settings, Tutor } from "./options";
 import { PracticeEditor, ProgressPage, ProjectPage, Report } from "./practice";
-import { defaultHubFilters, PracticeHub, WorkedSolution } from "./practice-hub";
+import { defaultHubFilters, PracticeHub } from "./practice-hub";
+import WorkedSolution from "./worked-solution";
+import { StudyGuide, StudyTopicPage } from "./study-guide";
+import { studyTopics } from "./study";
 
 const menus = [
   { title: "WORKSPACE", items: [
     { route: "overview", title: "Overview", icon: LayoutDashboard },
     { route: "learn", title: "Learning paths", icon: BookOpen },
+    { route: "study", title: "Interview study guide", icon: GraduationCap },
     { route: "practice", title: "Practice Hub", icon: Target },
     { route: "projects", title: "Build projects", icon: CodeXml },
   ] },
@@ -61,6 +65,7 @@ function SearchDialog({ open, close }: { open: boolean; close: () => void }) {
   }, [open]);
   const matched = [
     ...lessons.map((lesson) => ({ href: `lesson/${lesson.id}`, title: lesson.title, description: lesson.summary, group: "Lesson", search: `${lesson.title} ${lesson.summary}` })),
+    ...studyTopics.map((item) => ({ href: `study-topic/${item.id}`, title: item.title, description: item.summary, group: "Study topic", search: `${item.title} ${item.summary}` })),
     ...cases.map((item) => ({ href: `design/${item.id}`, title: item.title, description: item.summary, group: "Problem", search: caseSearchText(item) })),
   ].filter((item) => matchesSearch(item.search, query)).slice(0, 8);
   return (
@@ -184,7 +189,7 @@ export default function Workspace() {
   }
 
   const [view, id, parentId] = route.split("/");
-  const current = { lesson: "learn", design: "practice", answer: "practice", mock: "mocks", project: "projects", report: "progress" }[view] || view;
+  const current = { lesson: "learn", "study-topic": "study", design: "practice", answer: "practice", mock: "mocks", project: "projects", report: "progress" }[view] || view;
   const currentTitle = menus.flatMap((menu) => menu.items).find((item) => item.route === current)?.title || "Settings";
   const activeTrack = tracks.find((item) => item.id === progress.profile.track) || tracks[0];
   const initials = progress.profile.name ? progress.profile.name.split(/\s+/).slice(0, 2).map((word) => word[0]?.toUpperCase()).join("") : "S";
@@ -195,8 +200,13 @@ export default function Workspace() {
 
   if (view === "overview") content = <Dashboard progress={progress} />;
   if (view === "learn") content = <Learning progress={progress} chooseTrack={chooseTrack} />;
+  if (view === "study") content = <StudyGuide groupId={id} />;
+  if (view === "study-topic") {
+    const topic = studyTopics.find((entry) => entry.id === id);
+    if (topic) content = <StudyTopicPage item={topic} />;
+  }
   if (view === "practice") content = <PracticeHub filters={hubFilters} setFilters={setHubFilters} />;
-  if (view === "answer" && item) content = <WorkedSolution item={item} />;
+  if (view === "answer" && item) content = <WorkedSolution key={item.id} item={item} stepId={parentId} />;
   if (view === "mocks") content = <CaseLibrary key="mock" mode="mock" />;
   if (view === "projects") content = <CaseLibrary key="project" mode="project" />;
   if (view === "progress") content = <ProgressPage progress={progress} />;

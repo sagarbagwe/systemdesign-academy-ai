@@ -1,0 +1,60 @@
+import type { StudyTopic } from "./types";
+
+export const patternTopics: StudyTopic[] = [
+  {
+    id: "realtime-updates", title: "Real-time Updates", group: "patterns", practice: "live-comments",
+    summary: "Push changes promptly and let clients recover when a connection drops.",
+    method: "Keep a durable sequence or snapshot cursor. A gateway fans out updates to interested clients. On reconnect, replay recent events or send a fresh snapshot.",
+    tradeoff: "Polling is simple at low volumes. SSE fits one-way updates and WebSockets fit two-way communication, but both need connection budgeting.",
+    say: "I’ll send changes with a cursor. If the connection drops, the client can catch up without assuming it saw every live update.",
+    diagram: [["Update source", "Durable event log", "Commit event"], ["Durable event log", "Connection gateway", "Publish by channel", "async"], ["Connection gateway", "Viewer", "Push event batch"], ["Viewer", "Replay API", "Reconnect with cursor"]],
+  },
+  {
+    id: "dealing-with-contention", title: "Dealing with Contention", group: "patterns", practice: "flash-sale",
+    summary: "Protect a shared invariant when many requests compete for the same resource.",
+    method: "Define the winning condition at the authority. Use a conditional update or short transaction. For bursts, buffer or admit only the work the writer can handle.",
+    tradeoff: "Serializing a single key simplifies safety but caps its throughput. Partitioning capacity helps only if the business rule tolerates it.",
+    say: "My database decides who gets the last unit. The waiting room caps the race, and the stock update still has an atomic guard.",
+    diagram: [["Buyers", "Admission gate", "Bound concurrent attempts"], ["Admission gate", "Stock authority", "Submit eligible hold"], ["Stock authority", "Reservation", "Check and create"], ["Stock authority", "Unavailable response", "No stock left", "reject"]],
+  },
+  {
+    id: "multi-step-processes", title: "Multi-step Processes", group: "patterns", practice: "distributed-transaction",
+    summary: "Track operations across services without losing progress during partial failure.",
+    method: "Persist the current step and emit a command with a stable ID. Save receipts, retry safe work, and compensate only when the effect is known and reversible.",
+    tradeoff: "A workflow coordinator makes state visible and adds an operational component. Independent events fit loose coupling but obscure dependency order.",
+    say: "I’ll store a pending order and a receipt for each step. After a timeout, I’ll ask the provider what happened before retrying or compensating.",
+    diagram: [["Checkout API", "Workflow state", "Save pending order"], ["Workflow state", "Inventory and payment", "Execute step by ID", "async"], ["Inventory and payment", "Workflow state", "Persist outcome"], ["Workflow state", "Compensation", "Undo safe effects", "reject"]],
+  },
+  {
+    id: "scaling-reads", title: "Scaling Reads", group: "patterns", practice: "social-feed",
+    summary: "Reduce repeated work on read-heavy routes.",
+    method: "Measure the hottest queries, improve indexes first, and use caches or replicas where the freshness rule permits. Where reads need complex joins, build a read model suited to the query.",
+    tradeoff: "Replicas and projections can lag. Route reads with an explicit read-after-write guarantee and protect the primary when caches miss.",
+    say: "I’ll cache the high-volume view while keeping a user’s just-written result on a path that can see it.",
+    diagram: [["Read request", "Query API", "Choose consistency policy"], ["Query API", "Read cache", "Serve common view"], ["Query API", "Read replica", "Fetch on miss"], ["Query API", "Primary database", "Strict reads only"]],
+  },
+  {
+    id: "scaling-writes", title: "Scaling Writes", group: "patterns", practice: "api-metering",
+    summary: "Spread write load across keys and move independent work off the request path.",
+    method: "Write the minimum authoritative state first, then batch derived work behind a durable log. Shard by a key that spreads the real workload and preserve ordering only where needed.",
+    tradeoff: "Buffering absorbs a burst but does not create processing capacity. Track lag and limit admission before the backlog becomes unbounded.",
+    say: "I’ll make the event durable, then update summaries asynchronously. I’ll check for hot keys because uniform shard math can hide the real bottleneck.",
+    diagram: [["Write API", "Partitioned log", "Append durable event"], ["Partitioned log", "Writer shard A", "Process key group A", "async"], ["Partitioned log", "Writer shard B", "Process key group B", "async"], ["Writer shard A", "Read projection", "Publish aggregate"]],
+  },
+  {
+    id: "handling-large-blobs", title: "Handling Large Blobs", group: "patterns", practice: "file-upload",
+    summary: "Keep large file bytes off the ordinary application request path.",
+    method: "Authorize and initialize an upload in the API, issue short-lived part URLs, and send bytes directly to object storage. Validate the final object and commit its metadata before listing it.",
+    tradeoff: "Direct transfer reduces app-server bandwidth but requires cleanup of unfinished uploads and verification before publication.",
+    say: "The API owns permissions and metadata. The client sends bytes straight to storage, then the API checks them before exposing a file.",
+    diagram: [["Uploader", "Upload API", "Request scoped part URLs"], ["Uploader", "Object storage", "Upload file parts"], ["Object storage", "Validation worker", "Verify content", "async"], ["Validation worker", "Media catalog", "Commit ready metadata"]],
+  },
+  {
+    id: "long-running-tasks", title: "Managing Long-Running Tasks", group: "patterns", practice: "job-queue",
+    summary: "Accept work quickly and expose status as jobs finish.",
+    method: "Persist a job and return its ID. Workers lease pending work, record checkpoints if useful, and complete a job with a valid lease. Provide status, cancellation, and bounded retries.",
+    tradeoff: "More retry protection helps recover infrastructure failures. External side effects still need their own idempotency contract.",
+    say: "The caller gets a job ID immediately. A worker can retry safely, and a replaced worker cannot overwrite the final result.",
+    diagram: [["Caller", "Job API", "Start work and return ID"], ["Job API", "Durable job queue", "Persist pending job", "async"], ["Durable job queue", "Worker", "Claim with expiry", "async"], ["Worker", "Job result store", "Finish with lease"]],
+  },
+];

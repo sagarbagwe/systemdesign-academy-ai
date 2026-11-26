@@ -5,6 +5,11 @@ export const traffic: Problem[] = [
     id: "api-gateway", title: "Design an API Gateway", level: "Intermediate", concepts: ["Routing", "Auth", "Deadlines"],
     scenario: "Several product teams expose versioned services through one public endpoint.", requirements: ["Validate identity and route requests.", "Enforce timeouts and per-route limits.", "Roll out routing changes safely."],
     capacity: "At 40,000 requests/s averaging 20 KB of response payload, plan for roughly 800 MB/s of body traffic before overhead and spread it across gateways.",
+    walkthrough: {
+      entities: ["Caller identity", "Route", "Policy revision", "Upstream pool"],
+      qualityGoal: "Apply authorization and request deadlines consistently while bounding the impact of a bad route update.",
+      flow: ["HTTPS request", "Validate caller", "Authorized route"],
+    },
     diagram: [
       ["Public client", "Edge gateway", "HTTPS request"],
       ["Route control plane", "Edge gateway", "Route snapshot", "async"],
@@ -23,6 +28,11 @@ export const traffic: Problem[] = [
     id: "cdn", title: "Design a Content Delivery Network", level: "Advanced", concepts: ["Edge cache", "Origin shielding", "Invalidation"],
     scenario: "A media platform serves files worldwide from a small set of origins.", requirements: ["Serve cacheable content close to users.", "Support protected media and purges.", "Shield origin during regional cache misses."],
     capacity: "At 500 GB/s edge delivery and a 98% byte hit rate, 10 GB/s still misses before shield hits. Budget origin capacity by object size and cache behavior.",
+    walkthrough: {
+      entities: ["Asset version", "Cache key", "Edge entry", "Purge request"],
+      qualityGoal: "Limit origin refill load and honor the access policy for private assets even during outages.",
+      flow: ["Request asset", "Edge miss", "Shield miss", "Versioned bytes"],
+    },
     diagram: [
       ["Viewer", "Regional edge cache", "Request asset"],
       ["Regional edge cache", "Origin shield", "Edge miss"],
@@ -42,6 +52,11 @@ export const traffic: Problem[] = [
     id: "distributed-cache", title: "Design a Distributed Cache", level: "Advanced", concepts: ["Consistent hashing", "Eviction", "Hot keys"],
     scenario: "Many services share a network cache in front of expensive reads.", requirements: ["Support get, set and deletion.", "Move few keys when nodes change.", "Protect backing stores when the cache loses capacity."],
     capacity: "Fifty million entries at 800 bytes each need about 40 GB payload before overhead. Replication and eviction headroom can more than double memory needs.",
+    walkthrough: {
+      entities: ["Cache entry", "Shard", "Replica", "Ring version"],
+      qualityGoal: "Keep topology changes from overwhelming the origin and bound staleness by the entry policy.",
+      flow: ["Get or set key", "Membership version", "Route key range", "Replicate entry"],
+    },
     diagram: [
       ["Service", "Cache router", "Get or set key"],
       ["Ring control plane", "Cache router", "Membership version", "async"],
@@ -61,6 +76,11 @@ export const traffic: Problem[] = [
     id: "circuit-breaker", title: "Design a Circuit Breaker", level: "Intermediate", concepts: ["Failure windows", "Fallback", "Half-open probes"],
     scenario: "A request path depends on services with occasional slow failures.", requirements: ["Open quickly on sustained failures.", "Probe recovery without flooding dependencies.", "Expose state and useful fallbacks."],
     capacity: "At 2,000 requests/s, a 500 ms deadline would leave up to about 1,000 outstanding requests in the steady-state worst case. Add a concurrency budget.",
+    walkthrough: {
+      entities: ["Operation", "Circuit state", "Outcome counter", "Probe budget"],
+      qualityGoal: "Bound dependency work during an outage and ramp up probes without flooding a recovering service.",
+      flow: ["Invoke operation", "Read circuit state", "Closed or probe", "Record outcome"],
+    },
     diagram: [
       ["Caller", "Circuit breaker", "Invoke operation"],
       ["Circuit breaker", "Rolling counters", "Read circuit state"],
@@ -79,6 +99,11 @@ export const traffic: Problem[] = [
     id: "dns-resolver", title: "Design a Recursive DNS Resolver", level: "Advanced", concepts: ["TTL", "Negative caching", "Recursive resolution"],
     scenario: "An ISP wants low-latency DNS lookups for many residential customers.", requirements: ["Resolve names through authoritative servers.", "Cache positive and negative results appropriately.", "Handle upstream failure and oversized replies."],
     capacity: "If 100,000 clients average two queries/minute, the resolver sees about 3,333 queries/s. At a 95% hit rate, about 167/s require a miss path before retries.",
+    walkthrough: {
+      entities: ["DNS question", "Resource record set", "Referral", "TTL"],
+      qualityGoal: "Keep common lookups low latency and bound recursive work when authorities are slow or unreachable.",
+      flow: ["Name and record type", "Check TTL", "Follow referral on miss", "Validate returned records", "Answer or error"],
+    },
     diagram: [
       ["Device", "DNS resolver", "Name and record type"],
       ["DNS resolver", "DNS cache", "Check TTL"],
@@ -97,6 +122,11 @@ export const traffic: Problem[] = [
     id: "webhooks", title: "Design Reliable Webhook Delivery", level: "Intermediate", concepts: ["Delivery IDs", "Signatures", "Retries"],
     scenario: "An events product sends updates to many customer-operated HTTPS endpoints.", requirements: ["Sign and deliver subscribed events.", "Retry transient failure without blocking other endpoints.", "Expose delivery history and replay."],
     capacity: "Ten million deliveries/day average 116/s. If incidents double attempts and peaks reach 10× average, reserve capacity for roughly 2,320 attempts/s.",
+    walkthrough: {
+      entities: ["Event", "Subscription", "Delivery", "Attempt"],
+      qualityGoal: "Isolate backlogs by subscriber and make retries deduplicable with a stable delivery ID.",
+      flow: ["Commit event", "One job per endpoint", "Lease attempt", "Signed request", "Persist status"],
+    },
     diagram: [
       ["Product service", "Event outbox", "Commit event"],
       ["Event outbox", "Delivery queue", "One job per endpoint", "async"],
@@ -117,6 +147,11 @@ export const traffic: Problem[] = [
     id: "session-store", title: "Design a Shared Session Store", level: "Intermediate", concepts: ["Session rotation", "TTL", "Revocation"],
     scenario: "A web application moves from one instance to a fleet.", requirements: ["Resolve live sessions fast on any instance.", "Support logout and credential rotation.", "Expire idle or old sessions consistently."],
     capacity: "Two million sessions at 1 KB of stored fields require about 2 GB before overhead. Refresh only at intervals to avoid a write on every read.",
+    walkthrough: {
+      entities: ["Account", "Session token", "Session record", "Revocation event"],
+      qualityGoal: "Expire and revoke access predictably across instances without trusting stale state for sensitive operations.",
+      flow: ["Cookie or logout", "Read session", "Create or revoke", "Revocation event", "Remove cached token"],
+    },
     diagram: [
       ["Browser", "Application server", "Cookie or logout"],
       ["Application server", "Session cache", "Read session"],
@@ -136,6 +171,11 @@ export const traffic: Problem[] = [
     id: "load-balancer", title: "Design a Layer 7 Load Balancer", level: "Intermediate", concepts: ["Health checks", "Connection draining", "Weighted routing"],
     scenario: "A small provider distributes HTTP traffic across several app pools.", requirements: ["Route by host and path.", "Remove unhealthy instances automatically.", "Drain connections without interrupting healthy requests."],
     capacity: "At 15,000 requests/s with a mean service time of 80 ms, about 1,200 requests are in flight on average. Budget long-lived streams separately.",
+    walkthrough: {
+      entities: ["Request", "Route rule", "Backend pool", "Health observation"],
+      qualityGoal: "Remove unhealthy backends promptly and drain existing connections without sending them new requests.",
+      flow: ["Request", "Pool + weights", "Eligible backends", "Route by health"],
+    },
     diagram: [
       ["HTTP client", "Layer 7 load balancer", "Request"],
       ["Routing config", "Layer 7 load balancer", "Pool + weights", "async"],
@@ -154,6 +194,11 @@ export const traffic: Problem[] = [
     id: "api-metering", title: "Design API Usage Metering", level: "Intermediate", concepts: ["Durable events", "Deduplication", "Reconciliation"],
     scenario: "A developer platform tracks each team's billable API usage.", requirements: ["Report near-real-time usage.", "Deduplicate retries and process late events.", "Reconcile billed usage against durable evidence."],
     capacity: "Twenty thousand requests/s produce 1.73 billion events/day if each call emits an event. At 150 bytes per event, that is about 259 GB/day before storage overhead.",
+    walkthrough: {
+      entities: ["Meter", "Usage event", "Aggregation window", "Finalized statement"],
+      qualityGoal: "Avoid lost or double-counted billable operations and make finalized charges auditable.",
+      flow: ["Emit operation ID", "Read usage events", "Deduplicate + roll up", "Estimated total"],
+    },
     diagram: [
       ["API gateway", "Usage event log", "Emit operation ID", "async"],
       ["Usage event log", "Metering processor", "Read usage events", "async"],
@@ -173,6 +218,11 @@ export const traffic: Problem[] = [
     id: "unique-id-generator", title: "Design a Distributed ID Generator", level: "Intermediate", concepts: ["Clock skew", "Node IDs", "Monotonicity"],
     scenario: "Several datacenters generate unique, roughly time-ordered IDs.", requirements: ["Generate IDs without a shared write per request.", "Avoid duplicate node assignments.", "Define behavior when clocks move backward."],
     capacity: "With 12 sequence bits, one node can issue at most 4,096 IDs per millisecond for a given timestamp. Confirm that ten-year timestamp width and worker count fit the encoding.",
+    walkthrough: {
+      entities: ["ID", "Worker lease", "Timestamp", "Sequence"],
+      qualityGoal: "Preserve uniqueness across clock changes, restarts, and worker-ID reuse.",
+      flow: ["Request ID", "Acquire worker ID", "Time + skew check", "Increment within tick", "Return generated ID"],
+    },
     diagram: [
       ["Application", "ID generator", "Request ID"],
       ["ID generator", "Worker lease store", "Acquire worker ID"],
@@ -192,6 +242,11 @@ export const traffic: Problem[] = [
     id: "service-discovery", title: "Design Service Discovery", level: "Advanced", concepts: ["Leases", "Health checks", "Versioned watches"],
     scenario: "A platform dynamically scales and replaces microservice instances.", requirements: ["Register and locate healthy endpoints.", "Propagate membership changes within seconds.", "Operate through brief control-plane outages."],
     capacity: "If 30,000 instances heartbeat every ten seconds, the registry processes about 3,000 heartbeats/s before reads and watch fan-out.",
+    walkthrough: {
+      entities: ["Service", "Instance registration", "Lease", "Registry revision"],
+      qualityGoal: "Propagate membership quickly and allow bounded operation during a brief registry failure.",
+      flow: ["Register and renew", "Persist lease", "Publish changes", "Membership deltas", "Choose endpoint"],
+    },
     diagram: [
       ["Service instance", "Registration API", "Register and renew"],
       ["Registration API", "Registry database", "Persist lease"],
@@ -211,6 +266,11 @@ export const traffic: Problem[] = [
     id: "offline-sync", title: "Design Offline App Synchronization", level: "Advanced", concepts: ["Conflict resolution", "Version vectors", "Change feeds"],
     scenario: "Field workers edit the same forms while disconnected.", requirements: ["Record edits offline.", "Synchronize without silently losing writes.", "Handle conflicting edits and deleted records."],
     capacity: "If 50,000 devices queue 25 mutations during an outage, reconnect can release 1.25 million writes. Batch with jitter and server-side quotas.",
+    walkthrough: {
+      entities: ["Device", "Record", "Mutation", "Change cursor"],
+      qualityGoal: "Preserve concurrent edits and deletion semantics across long disconnects and retried batches.",
+      flow: ["Record edit", "Push when online", "Compare base revision", "Persist changes", "Pull after cursor"],
+    },
     diagram: [
       ["Offline device", "Local mutation queue", "Record edit"],
       ["Local mutation queue", "Sync API", "Push when online"],

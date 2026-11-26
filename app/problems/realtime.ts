@@ -5,6 +5,11 @@ export const realtime: Problem[] = [
     id: "ride-hailing", title: "Design a Ride-Hailing Service", level: "Advanced", aliases: ["Uber", "Lyft", "cab booking"], concepts: ["Geo matching", "Trip state", "Offer leases"],
     scenario: "Riders request trips while drivers move, accept offers and send updates.", requirements: ["Match a rider with an available driver.", "Track trip progress.", "Prevent duplicate driver assignment."],
     capacity: "Two hundred thousand active drivers reporting every four seconds produce 50,000 updates/s. Booking requests need independent admission and latency goals.",
+    walkthrough: {
+      entities: ["Rider", "Driver", "Trip", "Expiring offer"],
+      qualityGoal: "Use fresh location and enforce exclusive assignments even when drivers accept after their offer expires.",
+      flow: ["Request ride", "Find available driver", "Query nearby drivers", "Expiring offer", "Commit leased assignment"],
+    },
     diagram: [
       ["Driver app", "Location ingest", "Location update"],
       ["Location ingest", "Spatial index", "Update driver cell"],
@@ -25,6 +30,11 @@ export const realtime: Problem[] = [
     id: "maps-routing", title: "Design a Maps and Routing Platform", level: "Advanced", aliases: ["Google Maps", "navigation"], concepts: ["Map tiles", "Road graph", "Traffic weights"],
     scenario: "Users view maps and request directions with live travel times.", requirements: ["Serve versioned map tiles.", "Compute valid routes with restrictions.", "Refresh road speeds without rebuilding the whole map."],
     capacity: "At 100,000 initial map views per minute and 12 tile requests each, edge traffic is 20,000 tile requests/s before panning and cache behavior.",
+    walkthrough: {
+      entities: ["Tile", "Road segment", "Turn restriction", "Route"],
+      qualityGoal: "Keep map delivery cacheable while routing around current restrictions and traffic changes.",
+      flow: ["Request directions", "Traverse restrictions", "Read live segment costs", "Directions and ETA"],
+    },
     diagram: [
       ["Map client", "Tile CDN", "Fetch map tiles"],
       ["Tile CDN", "Tile object storage", "Load on cache miss"],
@@ -45,6 +55,11 @@ export const realtime: Problem[] = [
     id: "food-delivery", title: "Design a Food Delivery Platform", level: "Advanced", aliases: ["Uber Eats", "DoorDash", "Swiggy", "Zomato"], concepts: ["Order state", "Dispatch", "Time estimates"],
     scenario: "Diners order from restaurants and follow a courier to delivery.", requirements: ["Validate menus and place orders.", "Coordinate preparation and courier pickup.", "Expose accurate status through delays."],
     capacity: "A lunch rush serving 600,000 orders in two hours averages about 83 orders/s. Status and location traffic is much larger than checkout volume.",
+    walkthrough: {
+      entities: ["Menu version", "Order", "Restaurant decision", "Courier offer"],
+      qualityGoal: "Keep customer promises accurate through kitchen delays and prevent duplicate payment or dispatch effects.",
+      flow: ["Quote and order", "Validate latest menu", "Confirm preparation", "Authorize or refund", "Assign near prep time", "Offer pickup", "Publish status"],
+    },
     diagram: [
       ["Diner", "Ordering workflow", "Quote and order"],
       ["Ordering workflow", "Versioned menu store", "Validate latest menu"],
@@ -65,6 +80,11 @@ export const realtime: Problem[] = [
     id: "eta-service", title: "Design a Real-Time ETA Service", level: "Advanced", concepts: ["Map matching", "Streaming features", "Freshness"],
     scenario: "A logistics product predicts journey time from location pings and historical traffic.", requirements: ["Estimate arrival time for an eligible route.", "Update estimates from recent traffic.", "Report uncertainty and fallback behavior."],
     capacity: "A million active devices reporting every ten seconds generate 100,000 pings/s. Estimate requests and offline model training need separate resources.",
+    walkthrough: {
+      entities: ["Position sample", "Road segment", "Speed window", "ETA estimate"],
+      qualityGoal: "Keep live estimates useful with incomplete telemetry and express uncertainty when falling back to historical data.",
+      flow: ["Match positions", "Window segment speed", "Publish recent speeds", "Request prediction", "Read current speeds", "Duration and confidence"],
+    },
     diagram: [
       ["GPS telemetry", "Map matcher", "Match positions"],
       ["Map matcher", "Speed aggregation", "Window segment speed", "async"],
@@ -85,6 +105,11 @@ export const realtime: Problem[] = [
     id: "location-sharing", title: "Design Live Location Sharing", level: "Intermediate", concepts: ["Access expiry", "WebSockets", "Battery budget"],
     scenario: "Friends share a location for a fixed time while meeting up.", requirements: ["Send low-latency location updates.", "Enforce recipient permissions and expiry.", "Protect user battery and location history."],
     capacity: "If 500,000 devices send every five seconds, ingest 100,000 location updates/s. Fan-out multiplies by the number of viewers per share.",
+    walkthrough: {
+      entities: ["Share", "Location sample", "Recipient grant", "Expiry"],
+      qualityGoal: "Make location access revocable promptly while balancing update latency, retention, and battery use.",
+      flow: ["Publish position", "Verify current grant", "Write sequence", "Fan-out scoped update", "Live location"],
+    },
     diagram: [
       ["Sender", "Location gateway", "Publish position"],
       ["Location gateway", "Share access DB", "Verify current grant"],
@@ -104,6 +129,11 @@ export const realtime: Problem[] = [
     id: "leaderboard", title: "Design a Real-Time Leaderboard", level: "Intermediate", aliases: ["gaming rankings", "live rankings", "Dream11"], concepts: ["Rank indexes", "Tie-breakers", "Windows"],
     scenario: "A large game tournament displays top scores and each player’s current rank.", requirements: ["Apply score updates idempotently.", "Read top K and rank around a player.", "Close seasons and preserve final results."],
     capacity: "For 200,000 score updates/s across 100 evenly loaded boards, each sees 2,000/s on average. One championship board may dominate.",
+    walkthrough: {
+      entities: ["Board", "Season", "Score event", "Rank snapshot"],
+      qualityGoal: "Make score updates replayable and publish deterministic ties and auditable season corrections.",
+      flow: ["Submit score event", "Deduplicate by ID", "Update season", "Maintain points and ties", "Read top K or rank", "Read current rank"],
+    },
     diagram: [
       ["Game server", "Score API", "Submit score event"],
       ["Score API", "Score event log", "Deduplicate by ID"],
@@ -123,6 +153,11 @@ export const realtime: Problem[] = [
     id: "transit-tracking", title: "Design Live Public Transit Tracking", level: "Intermediate", aliases: ["bus tracking", "transit arrival"], concepts: ["Route progress", "Ingest freshness", "Schedule fallback"],
     scenario: "Riders see bus positions and predicted arrivals at stops.", requirements: ["Accept vehicle updates.", "Map positions to trips and stops.", "Show fresh predictions with clear stale states."],
     capacity: "Twenty thousand vehicles reporting every ten seconds generate 2,000 events/s. A million riders refreshing stop pages dominate the read load.",
+    walkthrough: {
+      entities: ["Vehicle", "Scheduled trip", "Stop", "Arrival prediction"],
+      qualityGoal: "Identify stale or missing telemetry so riders can distinguish live predictions from scheduled arrivals.",
+      flow: ["Send position", "Resolve scheduled trip", "Update vehicle progress", "Recompute arrivals", "Publish stop ETAs", "Serve live estimate"],
+    },
     diagram: [
       ["Bus device", "Position ingest", "Send position"],
       ["Position ingest", "Trip matcher", "Resolve scheduled trip"],
@@ -143,6 +178,11 @@ export const realtime: Problem[] = [
     id: "live-class-attendance", title: "Design Live Class Attendance", level: "Intermediate", concepts: ["Join sessions", "Event deduplication", "Time intervals"],
     scenario: "An education platform records participation in scheduled remote classes.", requirements: ["Track join and leave across devices.", "Compute minutes attended.", "Handle reconnects and late delivery."],
     capacity: "Fifty thousand concurrent learners heartbeating every 30 seconds create roughly 1,667 events/s before joins and retry.",
+    walkthrough: {
+      entities: ["Class", "Learner", "Connection session", "Attendance interval"],
+      qualityGoal: "Avoid counting overlapping device sessions twice and report gaps from unreliable provider telemetry.",
+      flow: ["Join or heartbeat", "Renew connection lease", "Record join or leave", "Merge device intervals", "Save report versions", "Read authorized report"],
+    },
     diagram: [
       ["Student device", "Class gateway", "Join or heartbeat"],
       ["Class gateway", "Session database", "Renew connection lease"],
@@ -162,6 +202,11 @@ export const realtime: Problem[] = [
     id: "iot-telemetry", title: "Design an IoT Sensor Platform", level: "Advanced", concepts: ["Device identity", "Offline buffering", "Event time"],
     scenario: "Facilities send temperature and equipment data from devices with unstable links.", requirements: ["Authenticate and ingest device readings.", "Alert on threshold windows.", "Support offline catch-up and remote health views."],
     capacity: "One million sensors reporting once a minute produce about 16,700 readings/s. Offline batches can replay hours of readings at once.",
+    walkthrough: {
+      entities: ["Device", "Sensor reading", "Event window", "Alert"],
+      qualityGoal: "Protect live alert latency while reconnecting devices replay old readings.",
+      flow: ["Signed reading batch", "Identity and limits", "Accepted sequences", "Read event-time windows", "Threshold or missing"],
+    },
     diagram: [
       ["Sensor device", "Ingest gateway", "Signed reading batch"],
       ["Device registry", "Ingest gateway", "Identity and limits"],
@@ -181,6 +226,11 @@ export const realtime: Problem[] = [
     id: "matchmaking", title: "Design Multiplayer Matchmaking", level: "Advanced", concepts: ["Skill buckets", "Latency regions", "Queue fairness"],
     scenario: "Players queue for matches that balance skill, region and wait time.", requirements: ["Match compatible teams and players.", "Avoid assigning a party twice.", "Relax constraints transparently as people wait."],
     capacity: "At 120,000 queued players with a 30-second target, the service needs roughly 4,000 placements/s to drain that population within target.",
+    walkthrough: {
+      entities: ["Party", "Match ticket", "Game allocation", "Lease"],
+      qualityGoal: "Keep queue wait bounded and prevent duplicate assignments while respecting region and skill constraints.",
+      flow: ["Queue or cancel", "Persist waiting ticket", "Claim compatible parties", "Request game server", "Commit assigned match"],
+    },
     diagram: [
       ["Player party", "Matchmaking API", "Queue or cancel"],
       ["Matchmaking API", "Ticket queue", "Persist waiting ticket"],
@@ -200,6 +250,11 @@ export const realtime: Problem[] = [
     id: "geofence-events", title: "Design Geofence Arrival Events", level: "Advanced", concepts: ["Spatial indexing", "Hysteresis", "Event deduplication"],
     scenario: "A logistics service sends arrival and departure alerts when vehicles enter yards.", requirements: ["Evaluate relevant geofences for positions.", "Avoid repeated alerts near boundaries.", "Support late points and changing geofences."],
     capacity: "At 25,000 updates/s, checking ten candidate fences per update is 250,000 geometric tests/s. Pre-filter by coarse cells.",
+    walkthrough: {
+      entities: ["Position sample", "Fence version", "Membership state", "Transition"],
+      qualityGoal: "Avoid false boundary alerts and make late positions and polygon revisions deterministic.",
+      flow: ["Send sample", "Validate time and order", "Candidate fences", "Check dwell threshold", "Commit stable event", "Deliver transition"],
+    },
     diagram: [
       ["Vehicle device", "Position ingest", "Send sample"],
       ["Position ingest", "Fence evaluator", "Validate time and order"],
@@ -219,6 +274,11 @@ export const realtime: Problem[] = [
     id: "fleet-operations", title: "Design a Fleet Operations Dashboard", level: "Intermediate", concepts: ["Latest state", "Streaming aggregates", "Role-based views"],
     scenario: "Operators monitor thousands of vehicles and investigate route deviations.", requirements: ["Show current positions and incidents.", "Aggregate status by depot.", "Retain recent history for investigations."],
     capacity: "A fleet of 80,000 vehicles reporting every eight seconds produces 10,000 events/s. Historical map queries require bounded windows.",
+    walkthrough: {
+      entities: ["Vehicle", "Depot", "Latest state", "Incident"],
+      qualityGoal: "Mark stale coverage explicitly and bound live and historical queries by viewport and operator scope.",
+      flow: ["Emit location", "Reduce by vehicle", "Save last positions", "View bounded map", "Query snapshot"],
+    },
     diagram: [
       ["Vehicle device", "Telemetry stream", "Emit location", "async"],
       ["Telemetry stream", "Fleet projector", "Reduce by vehicle", "async"],

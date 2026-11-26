@@ -16,7 +16,15 @@ export type Topic = keyof typeof topics;
 export type FlowStyle = "sync" | "async" | "reject";
 export type DesignConnection = readonly [from: string, to: string, action: string, style?: FlowStyle];
 
+export type AnswerWalkthrough = {
+  entities: readonly string[];
+  qualityGoal: string;
+  flow: readonly string[];
+  sayDesign?: string;
+};
+
 export type WorkedAnswer = {
+  walkthrough: AnswerWalkthrough;
   capacity: string;
   diagram: readonly DesignConnection[];
   implementation?: readonly { label: string; text: string }[];

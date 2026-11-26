@@ -1,16 +1,11 @@
 "use client";
 
-import { BookOpen, Clock3, GitBranch, Search, Target } from "lucide-react";
+import { BookOpen, Clock3, Search } from "lucide-react";
 import { useRef } from "react";
-import dynamic from "next/dynamic";
-import { lessons, type Case, type Level } from "./catalog";
+import type { Level } from "./catalog";
 import { Glyph, Heading } from "./learning";
 import { cases, caseSearchText, matchesSearch } from "./problems";
 import { topics, type Topic } from "./problems/types";
-
-const AnswerArchitecture = dynamic(() => import("./answer-architecture"), {
-  loading: () => <p role="status">Loading design diagram…</p>,
-});
 
 const PAGE_SIZE = 18;
 const levels = ["All levels", "Beginner", "Intermediate", "Advanced"] as const;
@@ -93,61 +88,6 @@ export function PracticeHub({ filters, setFilters }: { filters: HubFilters; setF
         <span>Page {page} of {pages}</span>
         <button className="button neutral" disabled={page === pages} onClick={() => showPage(page + 1)}>Next</button>
       </nav>}
-    </>
-  );
-}
-
-export function WorkedSolution({ item }: { item: Case }) {
-  const { answer } = item;
-  const lesson = lessons.find((entry) => entry.id === item.lessonId);
-
-  return (
-    <>
-      <a className="back-link" href="#practice">Practice Hub</a>
-      <div className="solution-heading">
-        <Heading title={item.title} description="Worked answer" />
-        <a className="button primary" href={`#design/${item.id}`}><Target size={16} /> Practice this problem</a>
-      </div>
-      <section className="panel reading-card architecture-card" aria-labelledby="high-level-design">
-        <h2 id="high-level-design"><GitBranch size={19} aria-hidden="true" />High-level design</h2>
-        <AnswerArchitecture title={item.title} connections={answer.diagram} />
-        <p>{answer.design}</p>
-      </section>
-      <div className="solution-layout">
-        <article className="panel reading-card solution">
-          <section><h2>Capacity estimate</h2><p>{answer.capacity}</p></section>
-          <section>
-            <h2>API and data model</h2>
-            <dl className="solution-data">
-              <div><dt>Interface</dt><dd>{answer.api}</dd></div>
-              <div><dt>Storage</dt><dd>{answer.data}</dd></div>
-            </dl>
-          </section>
-          {answer.implementation && (
-            <section>
-              <h2>Token-bucket implementation</h2>
-              <dl className="solution-data">
-                {answer.implementation.map(({ label, text }) => <div key={label}><dt>{label}</dt><dd>{text}</dd></div>)}
-              </dl>
-            </section>
-          )}
-          <section><h2>Reliability and failure handling</h2><p>{answer.reliability}</p></section>
-          <section><h2>Trade-offs</h2><p>{answer.tradeoff}</p></section>
-        </article>
-        <aside className="solution-side">
-          <section className="panel reading-card">
-            <h2>Problem statement</h2>
-            <p>{item.scenario}</p>
-            <ul>{item.requirements.map((requirement) => <li key={requirement}>{requirement}</li>)}</ul>
-            <div className="tags">{item.concepts.map((concept) => <span key={concept}>{concept}</span>)}</div>
-          </section>
-          <section className="panel reading-card">
-            <h2>Interview follow-up</h2>
-            <p>{item.retry}</p>
-            {lesson && <a className="text-link" href={`#lesson/${lesson.id}`}>Review {lesson.title.toLowerCase()}</a>}
-          </section>
-        </aside>
-      </div>
     </>
   );
 }

@@ -78,8 +78,8 @@ function positionDiagram(connections: readonly DesignConnection[], vertical: boo
   };
 }
 
-export default function AnswerArchitecture({ title, connections }: {
-  title: string; connections: readonly DesignConnection[];
+export default function AnswerArchitecture({ title, label = "high-level design", connections }: {
+  title: string; label?: string; connections: readonly DesignConnection[];
 }) {
   const id = useId().replace(/[^\w-]/g, "");
   const container = useRef<HTMLDivElement>(null);
@@ -112,7 +112,7 @@ export default function AnswerArchitecture({ title, connections }: {
         <div ref={container} className="answer-diagram-scroll" role="region" aria-label="Scrollable architecture diagram" tabIndex={0}>
           <svg className="answer-diagram" role="img" aria-labelledby={`${id}-title`}
             viewBox={`0 0 ${graph.width} ${graph.height}`} style={{ width: graph.width, minWidth: fit ? undefined : minWidth }}>
-            <title id={`${id}-title`}>{title} high-level design</title>
+            <title id={`${id}-title`}>{title} {label}</title>
             <defs>
               {Object.keys(flowLabels).map((style) => (
                 <marker key={style} id={`${id}-${style}`} viewBox="0 0 10 10" refX="8.5" refY="5"

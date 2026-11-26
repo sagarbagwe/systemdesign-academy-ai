@@ -5,6 +5,11 @@ export const foundations: Problem[] = [
     id: "pastebin", title: "Design Pastebin", level: "Beginner", concepts: ["TTL", "Object storage", "Opaque IDs"],
     scenario: "A team shares short text snippets with links that can expire.", requirements: ["Create a paste with an optional expiry.", "Read it by an unguessable ID.", "Enforce size and owner deletion limits."],
     capacity: "100,000 pastes/day at 10 KB each produce about 1 GB/day before replication. Plan for a higher read rate as popular links are shared.",
+    walkthrough: {
+      entities: ["Paste", "Short ID", "Owner", "Expiry"],
+      qualityGoal: "Reject expired or removed pastes on reads even if background cleanup is delayed.",
+      flow: ["Create or read", "Access and expiry", "Large bodies", "Text or expiry status"],
+    },
     diagram: [
       ["Browser", "Paste API", "Create or read"],
       ["Paste API", "Metadata database", "Access and expiry"],
@@ -24,6 +29,11 @@ export const foundations: Problem[] = [
     id: "file-upload", title: "Design a Resumable File Upload Service", level: "Beginner", concepts: ["Multipart uploads", "Checksums", "Access control"],
     scenario: "Students upload multi-gigabyte assignments from unreliable networks.", requirements: ["Resume interrupted uploads.", "Verify uploaded bytes before publishing a file.", "Limit each user’s active uploads and storage."],
     capacity: "Ten thousand daily uploads at an average of 150 MB add 1.5 TB/day. At 15 MiB per part, a 1.5 GiB file needs about 103 parts.",
+    walkthrough: {
+      entities: ["Upload session", "Part", "File version", "Checksum"],
+      qualityGoal: "Resume partial uploads and publish only content that matches the approved size and checksum.",
+      flow: ["Start or complete", "Ownership and state", "Sign or finalize parts", "Upload signed parts", "Verify checksum", "Publish verified file"],
+    },
     diagram: [
       ["Browser", "Upload API", "Start or complete"],
       ["Upload API", "Session database", "Ownership and state"],
@@ -43,6 +53,11 @@ export const foundations: Problem[] = [
     id: "parking-lot", title: "Design a Parking Lot", level: "Beginner", concepts: ["State machines", "Concurrency", "Allocation"],
     scenario: "A multi-level garage has gates and several vehicle classes.", requirements: ["Assign an eligible space when a vehicle enters.", "Issue and close a parking ticket.", "Show available spaces per floor and vehicle type."],
     capacity: "With 2,000 spaces and a 120-car arrival in two minutes, the entry path sees about one allocation/s during that burst. Correct concurrent allocation matters more than sharding.",
+    walkthrough: {
+      entities: ["Vehicle", "Spot", "Ticket", "Gate request"],
+      qualityGoal: "Prevent two gates from issuing valid tickets for the same spot under concurrent arrivals.",
+      flow: ["Class and request ID", "Reserve free spot", "Open or close ticket"],
+    },
     diagram: [
       ["Entry gate", "Allocation service", "Class and request ID"],
       ["Allocation service", "Parking database", "Reserve free spot"],
@@ -61,6 +76,11 @@ export const foundations: Problem[] = [
     id: "vending-machine", title: "Design a Vending Machine", level: "Beginner", concepts: ["State patterns", "Inventory", "Compensation"],
     scenario: "A machine dispenses items and can lose power during a purchase.", requirements: ["Select a product and authorize payment.", "Dispense at most one item per sale.", "Refund or reconcile failed dispensing."],
     capacity: "Even 300 sales/day averages only 12.5 sales/hour. Define timeouts for authorization, motors and sensors before optimizing throughput.",
+    walkthrough: {
+      entities: ["Slot", "Sale", "Payment authorization", "Dispense command"],
+      qualityGoal: "Preserve the sale across power loss and avoid dispensing twice after an ambiguous hardware outcome.",
+      flow: ["Select item", "Record transition", "Authorize payment", "One command per sale", "Item movement", "Confirm or investigate"],
+    },
     diagram: [
       ["Display", "Sale state machine", "Select item"],
       ["Sale state machine", "Local sale journal", "Record transition"],
@@ -80,6 +100,11 @@ export const foundations: Problem[] = [
     id: "library-lending", title: "Design a Library Lending System", level: "Beginner", concepts: ["Domain models", "Queues", "Transactions"],
     scenario: "A city library tracks physical copies and reservations across branches.", requirements: ["Find books and branch availability.", "Check out and return a specific copy.", "Offer available copies to patrons waiting in order."],
     capacity: "One million catalog entries and 5,000 daily transactions fit a single indexed database as a starting point. Budget search indexing separately from checkout.",
+    walkthrough: {
+      entities: ["Book", "Copy", "Loan", "Hold"],
+      qualityGoal: "Permit one active loan per physical copy and keep the hold queue fair through returns.",
+      flow: ["Checkout or return", "Reserve a copy", "Offer returned copy"],
+    },
     diagram: [
       ["Patron", "Catalog API", "Search title"],
       ["Catalog API", "Catalog search index", "Filter and rank"],
@@ -98,6 +123,11 @@ export const foundations: Problem[] = [
     id: "meeting-rooms", title: "Design a Meeting Room Booking System", level: "Beginner", concepts: ["Time intervals", "Conflict detection", "Idempotency"],
     scenario: "Employees reserve meeting rooms with overlapping time zones and schedules.", requirements: ["Search free rooms by time and capacity.", "Prevent overlapping confirmed reservations.", "Support cancellation and retry."],
     capacity: "With 500 rooms and 30-minute slots, one day contains at most 24,000 room-slots. Start with relational indexing instead of a separate scheduling system.",
+    walkthrough: {
+      entities: ["Room", "Booking", "Time interval", "Organizer"],
+      qualityGoal: "Enforce non-overlapping reservations at confirmation even when search availability is stale.",
+      flow: ["Browse or reserve", "Advisory search", "Enforce no overlap", "Save booking event", "Notify attendees"],
+    },
     diagram: [
       ["Employee", "Booking API", "Browse or reserve"],
       ["Booking API", "Availability view", "Advisory search"],
@@ -117,6 +147,11 @@ export const foundations: Problem[] = [
     id: "online-judge", title: "Design an Online Coding Judge", level: "Intermediate", concepts: ["Job queues", "Isolation", "Fair scheduling"],
     scenario: "A programming contest platform compiles and grades submissions.", requirements: ["Queue submissions and report result status.", "Isolate untrusted code with bounded resources.", "Preserve fairness during contests."],
     capacity: "If 5,000 submissions arrive in one minute and average two CPU-seconds each, they consume 10,000 CPU-seconds. About 167 fully utilized cores would clear that minute’s arrivals in the same minute.",
+    walkthrough: {
+      entities: ["Problem version", "Submission", "Runner job", "Verdict"],
+      qualityGoal: "Isolate contestant code and prevent retrying a job from publishing conflicting verdicts.",
+      flow: ["Submit source", "Persist submission", "Submit run", "Lease bounded task", "Store verdict", "Poll current result"],
+    },
     diagram: [
       ["Contestant", "Submission API", "Submit source"],
       ["Submission API", "Submission storage", "Persist submission"],
@@ -136,6 +171,11 @@ export const foundations: Problem[] = [
     id: "live-polls", title: "Design Live Polls", level: "Beginner", concepts: ["Unique votes", "Counters", "Read models"],
     scenario: "A conference asks attendees to vote on questions and shows near-live counts.", requirements: ["Accept at most one vote per participant per poll.", "Update results within a few seconds.", "Handle a burst when a presenter opens voting."],
     capacity: "Thirty thousand participants voting within 20 seconds create a burst of 1,500 writes/s. Fan-out of results can be much larger than the vote write rate.",
+    walkthrough: {
+      entities: ["Poll", "Participant", "Vote", "Result snapshot"],
+      qualityGoal: "Count each participant at most once and show recent totals during synchronized voting bursts.",
+      flow: ["Cast vote", "Upsert unique vote", "Project counts", "Versioned totals", "Publish snapshot"],
+    },
     diagram: [
       ["Attendee", "Vote API", "Cast vote"],
       ["Vote API", "Vote database", "Upsert unique vote"],
@@ -154,6 +194,11 @@ export const foundations: Problem[] = [
     id: "spreadsheet-engine", title: "Design a Spreadsheet Formula Engine", level: "Intermediate", concepts: ["Dependency graph", "Cycle detection", "Incremental computation"],
     scenario: "A spreadsheet recalculates formulas after cells change.", requirements: ["Parse formulas and cell references.", "Recalculate affected cells after a mutation.", "Detect cyclic dependencies and report errors."],
     capacity: "A sheet with 100,000 cells and three references per formula can hold about 300,000 dependency edges. A small edit should visit its affected subgraph.",
+    walkthrough: {
+      entities: ["Cell", "Formula", "Dependency edge", "Sheet revision"],
+      qualityGoal: "Detect cycles and recompute only the affected part of a consistent sheet revision.",
+      flow: ["Parse expression", "Update references", "Affected DAG", "Commit values", "Render changed cells"],
+    },
     diagram: [
       ["Cell edit", "Formula parser", "Parse expression"],
       ["Formula parser", "Dependency graph", "Update references"],
@@ -173,6 +218,11 @@ export const foundations: Problem[] = [
     id: "thread-pool", title: "Design a Bounded Thread Pool", level: "Intermediate", concepts: ["Bounded queue", "Worker lifecycle", "Backpressure"],
     scenario: "A service accepts background tasks from several components in one process.", requirements: ["Assign tasks to a bounded worker set.", "Expose a result or cancellation handle.", "Choose behavior for overload and shutdown."],
     capacity: "Sixteen workers with a mean task time of 40 ms could process roughly 400 tasks/s at full utilization under the stated assumption. Include headroom for tail latency and blocking.",
+    walkthrough: {
+      entities: ["Task", "Worker", "Queue entry", "Future"],
+      qualityGoal: "Bound queued work and specify what callers observe on rejection, cancellation, and shutdown.",
+      flow: ["Submit task", "Admit work", "Claim task", "Complete or fail"],
+    },
     diagram: [
       ["Producer", "Thread pool", "Submit task"],
       ["Thread pool", "Bounded task queue", "Admit work"],
@@ -191,6 +241,11 @@ export const foundations: Problem[] = [
     id: "connection-pool", title: "Design a Database Connection Pool", level: "Intermediate", concepts: ["Leases", "Resource limits", "Timeouts"],
     scenario: "A web service shares a fixed number of database connections across requests.", requirements: ["Lease and return connections safely.", "Validate or replace broken connections.", "Bound wait times and support shutdown."],
     capacity: "At 500 requests/s with 30 ms of average connection hold time, average occupancy is about 15. Set a size based on tail demand and total database limits across processes.",
+    walkthrough: {
+      entities: ["Connection", "Lease", "Waiting request", "Deadline"],
+      qualityGoal: "Prevent concurrent use of a leased connection and limit how long callers wait for capacity.",
+      flow: ["Acquire with deadline", "Validate idle handle", "Grant exclusive use", "Run bounded work", "Reset and return"],
+    },
     diagram: [
       ["Request handler", "Connection pool", "Acquire with deadline"],
       ["Connection pool", "Idle connections", "Validate idle handle"],
@@ -210,6 +265,11 @@ export const foundations: Problem[] = [
     id: "feature-flags", title: "Design a Feature Flag Service", level: "Beginner", concepts: ["Deterministic bucketing", "Versioned config", "Rollback"],
     scenario: "A product rolls changes out to a stable percentage of users.", requirements: ["Evaluate flags locally in low latency.", "Roll out by cohort or percentage.", "Provide fast rollback and an audit trail."],
     capacity: "Ten thousand application instances fetching every 30 seconds create about 333 polls/s. Send conditional requests and only transfer changed versions.",
+    walkthrough: {
+      entities: ["Flag", "Rule revision", "Evaluation context", "Variant"],
+      qualityGoal: "Keep bucketing consistent across instances and make rollback propagation observable.",
+      flow: ["Publish rules", "Validate and save", "Publish snapshot", "Fetch by version", "Evaluate locally", "Selected variant"],
+    },
     diagram: [
       ["Administrator", "Flag control plane", "Publish rules"],
       ["Flag control plane", "Versioned config store", "Validate and save"],

@@ -5,6 +5,11 @@ export const social: Problem[] = [
     id: "social-feed", title: "Design a Social News Feed", level: "Advanced", aliases: ["Twitter", "X", "Facebook news feed"], concepts: ["Fan-out", "Ranking", "Cursor pagination"],
     scenario: "A social app shows an ordered stream of posts from followed creators.", requirements: ["Make new posts discoverable quickly.", "Page through a stable feed.", "Handle creators with millions of followers."],
     capacity: "Two million posts/day each with 100 eligible followers produce up to 200 million timeline writes/day before celebrity skew.",
+    walkthrough: {
+      entities: ["Post", "Follow", "Timeline entry", "Feed cursor"],
+      qualityGoal: "Bound fan-out for large accounts and prevent deleted or private content from appearing in stale timelines.",
+      flow: ["Publish post", "Store content", "Ordinary post event", "Push post pointers", "Request page", "Read pushed candidates"],
+    },
     diagram: [
       ["Creators", "Posts API", "Publish post"],
       ["Posts API", "Posts database", "Store content"],
@@ -25,6 +30,11 @@ export const social: Problem[] = [
     id: "photo-sharing", title: "Design a Photo Sharing Platform", level: "Intermediate", aliases: ["Instagram", "photo feed"], concepts: ["Image variants", "Object storage", "Media permissions"],
     scenario: "Creators upload photos and followers browse their latest posts.", requirements: ["Upload photos and generate thumbnails.", "Support private accounts and public posts.", "Serve common image sizes efficiently."],
     capacity: "If 500,000 photos/day average 3 MB originals, store 1.5 TB/day plus thumbnails and other versions.",
+    walkthrough: {
+      entities: ["Media object", "Rendition", "Post", "Visibility rule"],
+      qualityGoal: "Keep private media authorized and serve popular renditions without overloading the origin.",
+      flow: ["Request signed upload", "Upload original", "Process variants", "Save renditions", "Check visibility", "Authorize variant", "Load on miss"],
+    },
     diagram: [
       ["Creator app", "Upload API", "Request signed upload"],
       ["Creator app", "Object storage", "Upload original"],
@@ -45,6 +55,11 @@ export const social: Problem[] = [
     id: "social-graph", title: "Design a Social Graph Service", level: "Advanced", concepts: ["Adjacency lists", "High-degree nodes", "Privacy"],
     scenario: "An app supports following, follower lists and mutual connections.", requirements: ["Create and remove follows.", "Read both edge directions efficiently.", "Enforce blocks under stale reads."],
     capacity: "Ten billion edges at 24 bytes of payload each are about 240 GB before reverse indexes, metadata and replication.",
+    walkthrough: {
+      entities: ["Profile", "Follow edge", "Block edge", "Page cursor"],
+      qualityGoal: "Apply current block rules even when the reverse follower index is stale.",
+      flow: ["Follow, block, list", "Write edge", "Project changes", "Store reverse edges", "Read followers"],
+    },
     diagram: [
       ["Profile client", "Graph API", "Follow, block, list"],
       ["Graph API", "Forward adjacency DB", "Write edge"],
@@ -64,6 +79,11 @@ export const social: Problem[] = [
     id: "news-aggregation", title: "Design a News Aggregator", level: "Intermediate", concepts: ["Deduplication", "Crawling", "Ranking"],
     scenario: "Readers browse fresh topic-based stories from many publishers.", requirements: ["Refresh publisher feeds.", "Group duplicate coverage.", "Rank stories by freshness and relevance."],
     capacity: "Polling 60,000 feeds every ten minutes averages 100 fetches/s. Use conditional fetches and per-publisher rate limits.",
+    walkthrough: {
+      entities: ["Publisher source", "Article", "Story cluster", "Topic snapshot"],
+      qualityGoal: "Refresh sources politely and keep removals and major breaking stories visible to the ranking pipeline.",
+      flow: ["Conditional refresh", "Queue source fetch", "Normalize and store", "Group duplicate stories", "Rank story snapshot", "Fetch topic page"],
+    },
     diagram: [
       ["Publisher feeds", "Fetch scheduler", "Conditional refresh"],
       ["Fetch scheduler", "Article workers", "Queue source fetch", "async"],
@@ -83,6 +103,11 @@ export const social: Problem[] = [
     id: "live-video", title: "Design a Live Streaming Platform", level: "Advanced", aliases: ["Twitch", "YouTube Live"], concepts: ["Segmenting", "Adaptive bitrate", "Latency budget"],
     scenario: "Creators broadcast live events to viewers with varying network speeds.", requirements: ["Ingest resilient live streams.", "Serve multiple bitrates to large audiences.", "Define acceptable glass-to-glass delay."],
     capacity: "One hundred thousand viewers at 3 Mbps consume about 300 Gbps at the edge. Edge delivery and ingest replication have different network budgets.",
+    walkthrough: {
+      entities: ["Stream", "Ingest session", "Rendition", "Segment"],
+      qualityGoal: "Target low playback delay while adapting bitrate and surviving brief broadcaster disconnects.",
+      flow: ["Live audio and video", "Forward stream", "Aligned renditions", "Rolling segments", "Adaptive playback"],
+    },
     diagram: [
       ["Broadcaster", "Ingest edge", "Live audio and video"],
       ["Ingest edge", "Active encoder", "Forward stream"],
@@ -103,6 +128,11 @@ export const social: Problem[] = [
     id: "video-on-demand", title: "Design Video-on-Demand Streaming", level: "Advanced", aliases: ["Netflix", "OTT"], concepts: ["Adaptive bitrate", "CDN placement", "Playback rights"],
     scenario: "A subscription service streams a catalog of movies around the world.", requirements: ["Resume playback across devices.", "Serve adaptive quality reliably.", "Enforce regional and subscription rights."],
     capacity: "At one million concurrent viewers and 4 Mbps average bitrate, edge capacity must handle about 4 Tbps before protocol overhead.",
+    walkthrough: {
+      entities: ["Title", "Rendition", "Playback session", "Watch position"],
+      qualityGoal: "Protect playback rights while minimizing startup delay, rebuffering, and origin egress.",
+      flow: ["Request stream", "Check access", "License and manifest", "Fetch media segments", "Fill edge cache"],
+    },
     diagram: [
       ["Source master", "Offline encoder", "Create renditions", "async"],
       ["Offline encoder", "Media origin", "Write versioned assets"],
@@ -123,6 +153,11 @@ export const social: Problem[] = [
     id: "comment-threads", title: "Design Threaded Comments", level: "Intermediate", concepts: ["Thread hierarchy", "Pagination", "Moderation"],
     scenario: "Readers discuss published articles with replies and reactions.", requirements: ["Add and paginate comments and replies.", "Preserve thread structure when content is removed.", "Handle hot articles and enforce visibility."],
     capacity: "A breaking story with 10,000 reads/s and 200 replies/s is much hotter than the typical thread. Cache top-level pages and measure update costs per article.",
+    walkthrough: {
+      entities: ["Article", "Comment", "Reply edge", "Moderation decision"],
+      qualityGoal: "Handle hot threads while preserving their structure and promptly hiding moderated content.",
+      flow: ["Add or list comments", "Write or load replies", "Update projections", "Refresh thread view", "Read ranked page"],
+    },
     diagram: [
       ["Reader", "Comments API", "Add or list comments"],
       ["Comments API", "Thread database", "Write or load replies"],
@@ -142,6 +177,11 @@ export const social: Problem[] = [
     id: "reaction-counter", title: "Design Likes and Reaction Counters", level: "Intermediate", concepts: ["Idempotent toggles", "Sharded counts", "Reconciliation"],
     scenario: "Viewers react to posts and see totals and their own selected reaction.", requirements: ["Enforce one active reaction per viewer and post.", "Update the viewer’s state immediately.", "Handle viral content without hot counters."],
     capacity: "A viral post can receive 50,000 updates/s. Spreading across 100 evenly hit counter shards would average 500 updates/s per shard before skew.",
+    walkthrough: {
+      entities: ["Post", "Reaction", "Viewer", "Counter shard"],
+      qualityGoal: "Return the viewer's authoritative choice immediately and maintain bounded lag for totals on viral posts.",
+      flow: ["Set or clear reaction", "Set unique pair", "Emit revision", "Aggregate deltas", "Update partition", "Read as-of total"],
+    },
     diagram: [
       ["Viewer", "Reaction API", "Set or clear reaction"],
       ["Reaction API", "Reaction database", "Set unique pair"],
@@ -161,6 +201,11 @@ export const social: Problem[] = [
     id: "presence", title: "Design Online Presence", level: "Intermediate", concepts: ["Heartbeats", "Leases", "Privacy"],
     scenario: "A chat application shows whether a contact is currently online.", requirements: ["Track multiple devices per account.", "Update presence within a few seconds.", "Respect visibility and blocked users."],
     capacity: "Two million connected devices heartbeating every 30 seconds generate about 67,000 heartbeats/s. Aggregate transitions before fan-out.",
+    walkthrough: {
+      entities: ["Account", "Device", "Presence lease", "Contact subscription"],
+      qualityGoal: "Bound stale online indicators and protect presence visibility even during a mass reconnect.",
+      flow: ["Heartbeat", "Renew device lease", "Online or offline", "Check authorized watchers", "Push presence change"],
+    },
     diagram: [
       ["User device", "Socket gateway", "Heartbeat"],
       ["Socket gateway", "Presence lease cache", "Renew device lease"],
@@ -179,6 +224,11 @@ export const social: Problem[] = [
     id: "typing-indicators", title: "Design Typing Indicators", level: "Beginner", concepts: ["Ephemeral events", "Throttling", "TTL"],
     scenario: "Group chat shows when authorized members are typing.", requirements: ["Publish lightweight typing updates.", "Expire indicators without a stop event.", "Keep ordinary messages independent."],
     capacity: "One million active typists sending at most one update every three seconds could produce around 333,000 ephemeral events/s at a simultaneous peak.",
+    walkthrough: {
+      entities: ["Conversation", "Typist", "Connection", "Typing expiry"],
+      qualityGoal: "Keep ephemeral traffic cheap and let indicators expire without delaying durable messages.",
+      flow: ["Debounced start or stop", "Check permission", "Publish with expiry", "Best-effort delivery", "Hide stale status"],
+    },
     diagram: [
       ["Composer", "WebSocket gateway", "Debounced start or stop"],
       ["WebSocket gateway", "Room membership DB", "Check permission"],
@@ -197,6 +247,11 @@ export const social: Problem[] = [
     id: "collaborative-docs", title: "Design Collaborative Document Editing", level: "Advanced", aliases: ["Google Docs", "Notion"], concepts: ["Concurrent edits", "Operation log", "Snapshots"],
     scenario: "A team edits a shared document from multiple devices in real time.", requirements: ["Broadcast edits with low delay.", "Converge after concurrent edits and reconnect.", "Support permissions and revision history."],
     capacity: "Ten thousand active documents with five editors each emitting five operations/s generate about 250,000 operations/s before batching.",
+    walkthrough: {
+      entities: ["Document", "Operation", "Revision snapshot", "Editor session"],
+      qualityGoal: "Ensure replicas converge under offline edits and cut off access promptly when an editor is removed.",
+      flow: ["Open or submit batch", "Authorized operations", "Persist edits", "Broadcast deltas", "Resume from offset"],
+    },
     diagram: [
       ["Editor device", "Sync gateway", "Open or submit batch"],
       ["Sync gateway", "Document coordinator", "Authorized operations"],
@@ -216,6 +271,11 @@ export const social: Problem[] = [
     id: "shared-albums", title: "Design Shared Photo Albums", level: "Intermediate", concepts: ["Access tokens", "Eventual lists", "Object lifecycle"],
     scenario: "Families and event guests contribute photos to shared albums.", requirements: ["Invite contributors and readers.", "Accept uploads and page through photos.", "Revoke links and remove images."],
     capacity: "A wedding with 400 users uploading 20 images generates 8,000 objects. At 4 MB each, the album receives about 32 GB before variants.",
+    walkthrough: {
+      entities: ["Album", "Membership", "Invite", "Album item"],
+      qualityGoal: "Revoke shared links predictably and publish media only after validating uploads.",
+      flow: ["Invite, upload or list", "Verify role and invite", "Upload signed file", "Generate variants", "Publish validated photo", "Page visible items"],
+    },
     diagram: [
       ["Album member", "Album API", "Invite, upload or list"],
       ["Album API", "Membership database", "Verify role and invite"],

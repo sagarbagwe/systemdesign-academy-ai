@@ -5,6 +5,11 @@ export const ai: Problem[] = [
     id: "ai-chat", title: "Design an AI Chat Application", level: "Advanced", aliases: ["ChatGPT", "LLM chat", "streaming assistant"], concepts: ["Token streaming", "Conversation state", "Usage budgets"],
     scenario: "Users chat with a language model and can resume conversations across devices.", requirements: ["Persist turns and stream responses.", "Control model cost and context size.", "Support cancellation and recover interrupted streams."],
     capacity: "Five thousand concurrent responses averaging 25 output tokens/s require 125,000 output tokens/s of serving capacity. Budget prefill input separately.",
+    walkthrough: {
+      entities: ["Conversation", "Turn", "Generation", "Token reservation"],
+      qualityGoal: "Keep first-token latency and spend bounded while preserving stable conversation state through retries and cancellations.",
+      flow: ["Send user turn", "Save pending turn", "Reserve token budget", "Start generation", "Schedule compatible batch", "Stream numbered tokens", "Finalize response", "Receive or reconnect"],
+    },
     diagram: [
       ["Chat client", "Conversation API", "Send user turn"],
       ["Conversation API", "Conversation database", "Save pending turn"],
@@ -26,6 +31,11 @@ export const ai: Problem[] = [
     id: "rag-ingestion", title: "Design a RAG Document Ingestion Platform", level: "Advanced", aliases: ["document ingestion", "RAG pipeline"], concepts: ["Chunking", "Index versions", "Access filtering"],
     scenario: "Organizations upload documents that will be queried by different teams.", requirements: ["Parse and index document revisions.", "Enforce access controls and deletions.", "Support re-embedding and reproducible evaluation."],
     capacity: "Two million pages with five chunks each produce ten million embedding inputs. At 768 float32 dimensions, raw vectors alone consume about 30.7 GB.",
+    walkthrough: {
+      entities: ["Document revision", "Chunk", "Embedding", "Index snapshot"],
+      qualityGoal: "Enforce current permissions throughout re-indexing and keep indexed content tied to its source revision.",
+      flow: ["Upload or delete", "Versioned work", "Extract scoped chunks", "Embed model version", "Publish permitted revision"],
+    },
     diagram: [
       ["Document source", "Document API", "Upload or delete"],
       ["Document API", "Ingestion queue", "Versioned work", "async"],
@@ -47,6 +57,11 @@ export const ai: Problem[] = [
     id: "vector-search", title: "Design a Multi-Tenant Vector Search Service", level: "Advanced", aliases: ["vector database", "ANN", "semantic search"], concepts: ["Approximate neighbors", "Filtering", "Recall"],
     scenario: "Many customers store and query embeddings with different metadata filters.", requirements: ["Upsert and delete vectors by tenant.", "Return top neighbors under filters.", "Track latency, recall and index freshness."],
     capacity: "One hundred million 768-dimensional float32 vectors require about 307 GB before indexing and metadata. Keep a separate estimate for compression and replicas.",
+    walkthrough: {
+      entities: ["Vector", "Tenant", "Metadata filter", "Neighbor result"],
+      qualityGoal: "Enforce tenant isolation and measure recall and latency under selective filters.",
+      flow: ["Query or upsert", "Validate scope", "Load eligible filters", "Retrieve candidates", "Bounded candidates", "Return top k"],
+    },
     diagram: [
       ["Client", "Vector API", "Query or upsert"],
       ["Vector API", "Tenant router", "Validate scope"],
@@ -66,6 +81,11 @@ export const ai: Problem[] = [
     id: "recommendations", title: "Design a Recommendation System", level: "Advanced", aliases: ["Netflix recommendations", "product recommender"], concepts: ["Candidate retrieval", "Ranking", "Feedback loops"],
     scenario: "A marketplace suggests items for returning and new customers.", requirements: ["Retrieve and rank personalized candidates.", "Handle new users and out-of-stock items.", "Measure recommendation impact and diversity."],
     capacity: "If 10 million home visits/day rerank 200 candidates each, that is two billion scoring operations/day before caching and peak load.",
+    walkthrough: {
+      entities: ["User", "Candidate item", "Ranking feature", "Exposure"],
+      qualityGoal: "Keep ranking inside the latency budget and evaluate relevance and diversity independently of availability.",
+      flow: ["Request home feed", "Blend candidate sets", "Retrieve similar items", "Score short list", "Filter eligible items", "Ranked items", "Record model version"],
+    },
     diagram: [
       ["Viewer", "Recommendation API", "Request home feed"],
       ["Recommendation API", "Candidate retrieval", "Blend candidate sets"],
@@ -86,6 +106,11 @@ export const ai: Problem[] = [
     id: "agent-orchestrator", title: "Design an AI Agent Workflow Platform", level: "Advanced", aliases: ["LangGraph", "agent orchestration"], concepts: ["Workflow state", "Tool permissions", "Budget limits"],
     scenario: "Organizations run assistants that read approved sources and draft work for review.", requirements: ["Resume multi-step workflows.", "Enforce per-step capability and tenant budgets.", "Require review for externally visible actions."],
     capacity: "Ten thousand runs/day with eight model steps each can make 80,000 calls/day before retries. Limit per-run work and shared provider concurrency.",
+    walkthrough: {
+      entities: ["Run", "Step attempt", "Capability grant", "Approval"],
+      qualityGoal: "Resume from durable state under explicit spend, tool permission, and approval boundaries.",
+      flow: ["Start workflow", "Save run state", "Claim next step", "Restrict tool grants", "Execute allowed step", "Commit result"],
+    },
     diagram: [
       ["Workspace user", "Run API", "Start workflow"],
       ["Run API", "Workflow state DB", "Save run state"],
@@ -106,6 +131,11 @@ export const ai: Problem[] = [
     id: "llm-inference", title: "Design an LLM Inference Service", level: "Advanced", concepts: ["Continuous batching", "KV cache", "Admission control"],
     scenario: "Several products share a fleet that serves multiple model sizes.", requirements: ["Serve streamed generations.", "Meet time-to-first-token goals.", "Control queueing and accelerator memory."],
     capacity: "At 1,000 requests/s averaging 120 output tokens, plan for 120,000 output tokens/s before rejected or canceled work. Prompt prefill is another resource budget.",
+    walkthrough: {
+      entities: ["Generation request", "Model revision", "Token budget", "Cache entry"],
+      qualityGoal: "Protect interactive first-token latency and accelerator memory under mixed prompt lengths.",
+      flow: ["Request model and deadline", "Reserve token budget", "Batch compatible work", "Reuse scoped context", "Emit tokens"],
+    },
     diagram: [
       ["Application", "Inference API", "Request model and deadline"],
       ["Inference API", "Admission scheduler", "Reserve token budget"],
@@ -125,6 +155,11 @@ export const ai: Problem[] = [
     id: "feature-store", title: "Design a Machine Learning Feature Store", level: "Advanced", concepts: ["Point-in-time joins", "Online features", "Training parity"],
     scenario: "Several models reuse behavior features for low-latency predictions.", requirements: ["Serve current features with freshness metadata.", "Produce historically correct training features.", "Version schema and transformations."],
     capacity: "At 15,000 predictions/s and 20 features each, naive reads require 300,000 lookups/s. Group features by entity and use batched reads.",
+    walkthrough: {
+      entities: ["Feature definition", "Entity value", "Training label", "Dataset snapshot"],
+      qualityGoal: "Keep online values fresh and prevent future data from leaking into training examples.",
+      flow: ["Materialize features", "Save event-time versions", "Publish latest value", "Get current features"],
+    },
     diagram: [
       ["Source events", "Feature transforms", "Materialize features", "async"],
       ["Feature transforms", "Historical store", "Save event-time versions"],
@@ -144,6 +179,11 @@ export const ai: Problem[] = [
     id: "ml-training", title: "Design a Model Training Pipeline", level: "Advanced", concepts: ["Data lineage", "Reproducibility", "Model registry"],
     scenario: "A team trains daily models from versioned events and deploys only acceptable candidates.", requirements: ["Reproduce data and training inputs.", "Evaluate models before promotion.", "Recover failed runs and roll back."],
     capacity: "A weekly training dataset of 8 TB scanned in two hours has a minimum average read rate of about 1.1 GB/s before preprocessing overhead.",
+    walkthrough: {
+      entities: ["Dataset snapshot", "Training run", "Checkpoint", "Model version"],
+      qualityGoal: "Make training reproducible and require reviewed evaluation evidence before model promotion.",
+      flow: ["Submit frozen run", "Claim resources", "Load pinned data", "Save compatible state", "Score candidate", "Record candidate metrics", "Promote reviewed model"],
+    },
     diagram: [
       ["Training run API", "Job scheduler", "Submit frozen run"],
       ["Dataset snapshot", "Training workers", "Load pinned data"],
@@ -164,6 +204,11 @@ export const ai: Problem[] = [
     id: "model-evaluation", title: "Design an LLM Evaluation Platform", level: "Advanced", concepts: ["Golden datasets", "Rubrics", "Regression gates"],
     scenario: "A team tests model and prompt revisions before serving them to customers.", requirements: ["Run comparable evaluations across versions.", "Record evidence for each score.", "Detect regressions without exposing sensitive examples."],
     capacity: "Two thousand examples across five configurations and three repeats produce 30,000 generations. Capture per-run token and time costs.",
+    walkthrough: {
+      entities: ["Evaluation sample", "Configuration", "Output", "Rubric score"],
+      qualityGoal: "Preserve reproducible scoring and detect regressions per group without exposing sensitive examples.",
+      flow: ["Start pinned experiment", "Schedule examples", "Run model configurations", "Produce outputs", "Grade reviewed rubric", "Write evidence", "Check quality by cohort"],
+    },
     diagram: [
       ["Reviewer", "Evaluation API", "Start pinned experiment"],
       ["Versioned dataset", "Evaluation queue", "Schedule examples", "async"],
@@ -184,6 +229,11 @@ export const ai: Problem[] = [
     id: "speech-transcription", title: "Design Streaming Speech Transcription", level: "Advanced", concepts: ["Audio streaming", "Partial results", "Backpressure"],
     scenario: "A meeting application produces live captions and final transcripts.", requirements: ["Stream audio with low delay.", "Return revisable partial captions and final segments.", "Handle disconnects and processing overload."],
     capacity: "Twenty thousand 16-kHz mono PCM streams at 16 bits per sample use about 640 MB/s before compression. Size accelerators by effective real-time factor.",
+    walkthrough: {
+      entities: ["Caption session", "Audio frame", "Segment", "Revision"],
+      qualityGoal: "Keep captions responsive while preserving final timestamps across frame loss and reconnects.",
+      flow: ["Send timed frames", "Transcribe windows", "Emit revisioned captions", "Receive caption updates", "Save final segments"],
+    },
     diagram: [
       ["Audio client", "Audio gateway", "Send timed frames"],
       ["Audio gateway", "Speech worker", "Transcribe windows"],
@@ -203,6 +253,11 @@ export const ai: Problem[] = [
     id: "multimodal-search", title: "Design Multimodal Product Search", level: "Advanced", aliases: ["visual search", "image-to-product search"], concepts: ["Image embeddings", "Hybrid ranking", "Index freshness"],
     scenario: "Shoppers upload a photo or text to find matching and similar products.", requirements: ["Accept image and text queries.", "Return in-stock matches across filters.", "Measure relevance and latency by modality."],
     capacity: "Two million queries/day with 10% images means 200,000 image encodes/day. Measure accelerator bursts and upload limits separately.",
+    walkthrough: {
+      entities: ["Product revision", "Query", "Media embedding", "Ranked result"],
+      qualityGoal: "Balance visual relevance, exact product matching, stock freshness, and bounded image processing.",
+      flow: ["Text or image query", "Encode accepted query", "Similarity lookup", "Match product terms", "Visual candidates", "Keyword candidates", "Filter and rank matches"],
+    },
     diagram: [
       ["Search client", "Search API", "Text or image query"],
       ["Search API", "Image or text encoder", "Encode accepted query"],
@@ -223,6 +278,11 @@ export const ai: Problem[] = [
     id: "semantic-cache", title: "Design a Semantic Cache for AI Responses", level: "Advanced", concepts: ["Embedding similarity", "Cache correctness", "Version scopes"],
     scenario: "An AI help desk wants to reuse equivalent answers safely.", requirements: ["Identify eligible similar requests.", "Invalidate answers when evidence changes.", "Prevent cross-tenant or wrong-context reuse."],
     capacity: "If 1 million requests/day see a 20% eligible hit rate, up to 200,000 generations/day could be avoided. Account for one similarity lookup per eligible request.",
+    walkthrough: {
+      entities: ["Cache scope", "Query embedding", "Cache entry", "Evidence version"],
+      qualityGoal: "Prevent stale or cross-scope reuse even when two inputs are semantically similar.",
+      flow: ["Verify role and tenant", "Search allowed entries", "Fetch similar candidates", "Validate exact fields", "Exact scope and fresh"],
+    },
     diagram: [
       ["Application", "Scope filter", "Verify role and tenant"],
       ["Scope filter", "Semantic lookup", "Search allowed entries"],

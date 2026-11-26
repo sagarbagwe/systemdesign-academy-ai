@@ -1,6 +1,8 @@
 import { starterCases, type Case, type Level } from "../catalog";
+import { courseQuestions } from "../study/course-questions";
 import { ai } from "./ai";
 import { commerce } from "./commerce";
+import { courseProblems } from "./course-problems";
 import { data } from "./data";
 import { distributed } from "./distributed";
 import { foundations } from "./foundations";
@@ -45,11 +47,14 @@ export const cases: Case[] = [
     return { ...item, topic, aliases, answer };
   }),
   ...(Object.keys(topics) as Topic[]).flatMap((topic) => metadata[topic].entries.map((problem) => toCase(problem, topic))),
+  ...courseProblems.map(({ topic, ...problem }) => toCase(problem, topic)),
 ];
+
+const syllabusNames = new Map(courseQuestions.map(({ problem, name }) => [problem, name]));
 
 export function caseSearchText(item: Case) {
   const designType = item.topic === "foundations" ? "low level design LLD" : "high level design HLD";
-  return [item.title, item.summary, item.scenario, topics[item.topic], designType, item.level, ...item.concepts, ...item.aliases].join(" ");
+  return [item.title, syllabusNames.get(item.id), item.summary, item.scenario, topics[item.topic], designType, item.level, ...item.concepts, ...item.aliases].join(" ");
 }
 
 export function matchesSearch(haystack: string, query: string) {

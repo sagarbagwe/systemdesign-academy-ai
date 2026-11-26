@@ -5,6 +5,11 @@ export const data: Problem[] = [
     id: "key-value-store", title: "Design a Distributed Key-Value Store", level: "Advanced", concepts: ["Partitioning", "Quorums", "Read repair"],
     scenario: "A commerce platform needs a low-latency store for shopping-session metadata.", requirements: ["Read and write values by key.", "Scale horizontally and tolerate node loss.", "Define consistency under concurrent writes."],
     capacity: "One billion keys at 512 bytes of value each produce about 512 GB payload. Three copies take about 1.5 TB before keys, indexes and headroom.",
+    walkthrough: {
+      entities: ["Key", "Value version", "Partition", "Replica"],
+      qualityGoal: "Define which reads see acknowledged writes and prevent expired values from returning after replica repair.",
+      flow: ["Read or write key", "Replica placement", "Conditional write", "Replicate version"],
+    },
     diagram: [
       ["Client", "Routing coordinator", "Read or write key"],
       ["Partition map", "Routing coordinator", "Replica placement"],
@@ -24,6 +29,11 @@ export const data: Problem[] = [
     id: "database-sharding", title: "Design a Sharded SQL Store", level: "Advanced", concepts: ["Shard routing", "Online migration", "Cross-shard queries"],
     scenario: "A marketplace outgrows the write throughput of its orders database.", requirements: ["Support current customer and order queries.", "Split load across shards.", "Migrate tenants online and preserve orders."],
     capacity: "A 2 TB orders database receiving 12,000 writes/s needs a tested per-shard budget. At 2,000 sustainable writes/s per shard, eight balanced shards offer headroom before skew.",
+    walkthrough: {
+      entities: ["Tenant", "Order", "Shard mapping", "Migration checkpoint"],
+      qualityGoal: "Move tenant data without losing writes or letting stale routers write to the old shard after cutover.",
+      flow: ["Resolve tenant", "Routing epoch", "Tenant A", "Copy + change feed", "Replay before cutover"],
+    },
     diagram: [
       ["Orders API", "Shard router", "Resolve tenant"],
       ["Shard directory", "Shard router", "Routing epoch"],
@@ -43,10 +53,15 @@ export const data: Problem[] = [
     id: "multi-region-database", title: "Design a Multi-Region Database", level: "Advanced", concepts: ["Consensus", "Regional routing", "Conflict policy"],
     scenario: "A SaaS platform serves accounts from three regions and promises consistent preference updates.", requirements: ["Read key data near users.", "Preserve committed writes after a region fails.", "Define ownership and failover."],
     capacity: "If inter-region RTT is 80 ms, synchronous cross-region acknowledgment adds at least a network round trip for the required remote commit path. Measure cross-region p95 separately.",
+    walkthrough: {
+      entities: ["Record", "Partition", "Leader term", "Committed log entry"],
+      qualityGoal: "Preserve committed writes through a regional outage and make strict and stale reads explicit.",
+      flow: ["Write or strict read", "Consensus log to Region B replica", "Consensus log to Region C replica", "Quorum acknowledgment"],
+    },
     diagram: [
       ["Regional API", "Partition leader", "Write or strict read"],
-      ["Partition leader", "Region B replica", "Consensus log"],
-      ["Partition leader", "Region C replica", "Consensus log"],
+      ["Partition leader", "Region B replica", "Consensus log to Region B replica"],
+      ["Partition leader", "Region C replica", "Consensus log to Region C replica"],
       ["Region B replica", "Partition leader", "Quorum acknowledgment"],
       ["Regional API", "Local read replica", "Stale read allowed"],
       ["Partition leader", "Local read replica", "Catch up", "async"],
@@ -62,6 +77,11 @@ export const data: Problem[] = [
     id: "object-storage", title: "Design an Object Storage Service", level: "Advanced", aliases: ["Amazon S3", "blob store"], concepts: ["Immutable objects", "Metadata index", "Erasure coding"],
     scenario: "A platform stores user-generated objects from thumbnails to multi-gigabyte archives.", requirements: ["Upload and read objects by bucket and key.", "List keys under a prefix.", "Verify durability and integrity."],
     capacity: "If customers add 10 TB/day for 90 days, the logical footprint is about 900 TB before redundancy, updates or deletes. Calculate write and repair bandwidth separately.",
+    walkthrough: {
+      entities: ["Bucket", "Object version", "Chunk", "Manifest"],
+      qualityGoal: "Publish an object only after its bytes meet the durability threshold and preserve streaming reads across replacement.",
+      flow: ["PUT, GET or LIST", "Read or durably write chunks", "Lookup or commit manifest"],
+    },
     diagram: [
       ["Storage client", "Object API", "PUT, GET or LIST"],
       ["Object API", "Metadata index", "Lookup or commit manifest"],
@@ -80,6 +100,11 @@ export const data: Problem[] = [
     id: "cloud-drive-sync", title: "Design Cloud Drive File Sync", level: "Advanced", aliases: ["Google Drive", "Dropbox", "file synchronization"], concepts: ["Chunking", "Conflict copies", "Change cursors"],
     scenario: "Teams sync large shared folders across devices.", requirements: ["Upload changed content without resending entire files.", "Propagate moves, edits and deletes.", "Preserve conflicts safely."],
     capacity: "If 100,000 users change 30 MB/day, expect 3 TB/day before deduplication. A large folder move should update metadata without duplicating file data.",
+    walkthrough: {
+      entities: ["File", "Chunk", "Manifest", "Change cursor"],
+      qualityGoal: "Avoid retransmitting identical data and preserve both versions when concurrent edits cannot be merged.",
+      flow: ["Upload missing chunks", "Commit base revision", "Save file manifest", "Publish moves and deletes", "Pull from cursor"],
+    },
     diagram: [
       ["Sync client", "Metadata API", "Commit base revision"],
       ["Sync client", "Chunk storage", "Upload missing chunks"],
@@ -99,6 +124,11 @@ export const data: Problem[] = [
     id: "autocomplete", title: "Design Search Autocomplete", level: "Intermediate", aliases: ["typeahead", "suggestions"], concepts: ["Prefix indexes", "Top K", "Freshness"],
     scenario: "A marketplace suggests popular products and search terms as the user types.", requirements: ["Return top suggestions for a prefix.", "Support locale and freshness.", "Suppress removed products quickly."],
     capacity: "If five million searches/day generate six suggestion requests each, the system sees about 347 requests/s on average. Client debounce and prefix caching matter at peak.",
+    walkthrough: {
+      entities: ["Prefix", "Suggestion", "Candidate score", "Index snapshot"],
+      qualityGoal: "Keep suggestions fast while removing deleted catalog entries faster than the next full rebuild.",
+      flow: ["Prefix + locale", "Reuse ranked results", "Retrieve candidates", "Filter deleted IDs"],
+    },
     diagram: [
       ["Query client", "Suggestions API", "Prefix + locale"],
       ["Suggestions API", "Prefix cache", "Reuse ranked results"],
@@ -118,6 +148,11 @@ export const data: Problem[] = [
     id: "search-engine", title: "Design a Web Search Engine", level: "Advanced", aliases: ["Google Search"], concepts: ["Crawling", "Inverted indexes", "Distributed ranking"],
     scenario: "A search service indexes public documentation pages across many domains.", requirements: ["Discover and refresh pages respectfully.", "Support ranked keyword queries.", "Remove deleted or disallowed pages."],
     capacity: "Ten million pages with 500 indexed terms each contribute roughly five billion term occurrences before deduplication or compression. Budget recrawls independently.",
+    walkthrough: {
+      entities: ["URL", "Document revision", "Posting", "Search result"],
+      qualityGoal: "Bound work per origin and keep removed documents out of results when index shards lag.",
+      flow: ["Lease per host", "Parse and store pages", "Build postings", "Publish segments", "Keyword search", "Merge top results", "Filter removed pages"],
+    },
     diagram: [
       ["Crawler scheduler", "Crawler workers", "Lease per host", "async"],
       ["Crawler workers", "Document store", "Parse and store pages"],
@@ -138,6 +173,11 @@ export const data: Problem[] = [
     id: "log-search", title: "Design a Log Search Platform", level: "Advanced", aliases: ["Elasticsearch", "ELK"], concepts: ["Time partitioning", "Inverted indexes", "Tenant isolation"],
     scenario: "Teams search logs for recent incidents and retain older data cheaply.", requirements: ["Ingest logs and search by time and attributes.", "Isolate tenant queries and retention.", "Control high-cardinality storage."],
     capacity: "At 100,000 log events/s and 600 bytes each, raw input is about 5.18 TB/day. Size compressed segments using representative data.",
+    walkthrough: {
+      entities: ["Log event", "Tenant", "Index segment", "Archive pointer"],
+      qualityGoal: "Bound search cost and storage by tenant while surfacing ingestion gaps and partial results.",
+      flow: ["Batch log events", "Write partition", "Consume events", "Write postings", "Recent search"],
+    },
     diagram: [
       ["Log collector", "Ingest API", "Batch log events"],
       ["Ingest API", "Tenant log stream", "Write partition", "async"],
@@ -158,6 +198,11 @@ export const data: Problem[] = [
     id: "nearby-search", title: "Design Nearby Places Search", level: "Intermediate", aliases: ["Yelp", "geospatial indexing"], concepts: ["Spatial cells", "Distance filtering", "Ranking"],
     scenario: "A discovery app finds relevant places within a user-selected radius.", requirements: ["Find places by category and distance.", "Rank results and support pagination.", "Handle urban density and moving map views."],
     capacity: "If 2 million searches/day produce 100 candidate checks each, expect 200 million checks/day. Dense downtown cells require stricter caps and subdivision.",
+    walkthrough: {
+      entities: ["Place", "Spatial cell", "Search radius", "Page cursor"],
+      qualityGoal: "Return exact-distance results despite approximate cell coverage and cap candidate work in dense areas.",
+      flow: ["Center, radius, filter", "Fetch candidates", "Candidate IDs", "Eligible places", "Details and scores", "Stable cursor"],
+    },
     diagram: [
       ["Map app", "Nearby API", "Center, radius, filter"],
       ["Nearby API", "Spatial cell index", "Fetch candidates"],
@@ -177,6 +222,11 @@ export const data: Problem[] = [
     id: "content-deduplication", title: "Design Content-Addressed Deduplication", level: "Intermediate", concepts: ["Content hashes", "References", "Garbage collection"],
     scenario: "A backup service stores many identical chunks from repeated snapshots.", requirements: ["Detect duplicate chunks by content.", "Restore versioned snapshots exactly.", "Collect unreferenced chunks safely."],
     capacity: "Ten TB/day split into 4 MiB chunks yields roughly 2.4 million chunk checks/day. The deduplication ratio depends on the actual input distribution.",
+    walkthrough: {
+      entities: ["Chunk hash", "Deduplication scope", "Manifest", "Snapshot"],
+      qualityGoal: "Reuse verified chunks without leaking cross-tenant existence or collecting live references.",
+      flow: ["Check scoped hashes", "Look up fingerprints", "Upload missing chunks", "Commit verified references"],
+    },
     diagram: [
       ["Backup client", "Dedup API", "Check scoped hashes"],
       ["Dedup API", "Chunk index", "Look up fingerprints"],
@@ -196,6 +246,11 @@ export const data: Problem[] = [
     id: "time-series-db", title: "Design a Time-Series Database", level: "Advanced", concepts: ["Time buckets", "Compression", "Downsampling"],
     scenario: "A platform writes operational metrics and queries windows across host groups.", requirements: ["Accept fast batched writes.", "Query by series and time range.", "Retain recent raw data and longer aggregates."],
     capacity: "One million samples/s at 16 bytes each generate about 1.38 TB/day of raw point payload. Labels and indexes add a separate cost.",
+    walkthrough: {
+      entities: ["Series", "Sample", "Time block", "Aggregate"],
+      qualityGoal: "Ingest bursts and late points while bounding active-series cardinality and query work.",
+      flow: ["Samples with labels", "Persist by series", "Materialize blocks", "Summarize old data", "Store rollups"],
+    },
     diagram: [
       ["Metrics agents", "Ingest router", "Samples with labels"],
       ["Ingest router", "Replicated write log", "Persist by series"],
@@ -216,6 +271,11 @@ export const data: Problem[] = [
     id: "distributed-filesystem", title: "Design a Distributed File System", level: "Advanced", aliases: ["HDFS", "GFS"], concepts: ["Block placement", "Namespace", "Leases"],
     scenario: "A data platform stores huge immutable files for batch jobs.", requirements: ["Read and append large files across nodes.", "Survive individual disk and node failures.", "Maintain a consistent namespace."],
     capacity: "Ten PB logical at 128 MiB per block is roughly 75 million blocks. Keep per-block metadata bounded and plan redundancy repair throughput.",
+    walkthrough: {
+      entities: ["Inode", "Block", "Append lease", "Committed offset"],
+      qualityGoal: "Maintain one fenced writer per file and keep the committed byte range durable after node failure.",
+      flow: ["Open path or lease", "Replicate metadata", "Choose eligible servers", "Read or append bytes"],
+    },
     diagram: [
       ["File client", "Namespace leader", "Open path or lease"],
       ["Namespace leader", "Namespace replicas", "Replicate metadata"],

@@ -13,7 +13,9 @@ npm ci
 npm run dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000). This mode includes four learning paths, ten lessons with quizzes, 104 Practice Hub problems with worked answers and high-level design diagrams, three projects, a curriculum tutor, and browser-local progress and exports. Practice feedback highlights coverage of case-specific concepts and suggests a retry constraint.
+Open [http://localhost:3000](http://localhost:3000). This mode includes four learning paths, ten lessons with quizzes, 116 Practice Hub problems with six-step worked answers and high-level design diagrams, three projects, a curriculum tutor, and browser-local progress and exports. Practice feedback highlights coverage of case-specific concepts and suggests a retry constraint.
+
+The **Interview study guide** includes a four-week plan, 37 illustrated topic lessons, and original answers to all 32 questions listed in the linked course outline. [Hello Interview course outline](https://www.hellointerview.com/learn/system-design/in-a-hurry/introduction)
 
 `npm run build` writes a static deployment to `out/`. The hosted preview uses this mode.
 

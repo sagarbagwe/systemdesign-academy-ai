@@ -4,6 +4,12 @@ export const starterAnswers: Record<string, WorkedAnswer & { topic: Topic; alias
   "url-shortener": {
     topic: "foundations",
     capacity: "One million redirects/day averages about 12 reads/s and 20,000 creates/day averages 0.23 writes/s. Plan for a 20× peak of about 232 reads/s and measure single-link bursts separately.",
+    walkthrough: {
+      entities: ["Link", "Short code", "Link owner"],
+      qualityGoal: "Keep redirects fast under read-heavy traffic and stop serving revoked or expired links within the promised window.",
+      sayDesign: "I’ll store each short code next to its destination. A redirect first checks the cache and falls back to the database to verify that the link is active.",
+      flow: ["Create short link", "Insert unique code", "Resolve code", "Cache miss", "Active link"],
+    },
     diagram: [
       ["Browser", "Link API", "Create short link"],
       ["Link API", "Links database", "Insert unique code"],
@@ -36,6 +42,12 @@ export const starterAnswers: Record<string, WorkedAnswer & { topic: Topic; alias
         text: "With a 200-token bucket and a refill rate of 100 tokens/s, 200 requests can pass in an immediate burst. An additional request at the same instant is rejected. The next token becomes available after 10 ms. Round the earliest estimated retry time up to whole seconds when sending Retry-After.",
       },
     ],
+    walkthrough: {
+      entities: ["Tenant", "Route policy", "Token bucket"],
+      qualityGoal: "Enforce the same quota across gateway instances and keep a degraded bucket store from overloading upstream services.",
+      sayDesign: "The gateway checks a shared bucket for this tenant and route. Redis refills and consumes a token atomically. If there’s a token, the request goes upstream. Otherwise the caller gets a 429 and a retry time.",
+      flow: ["HTTP request", "Tenant + route", "Burst and refill rate", "Atomic refill + consume", "Allowed"],
+    },
     diagram: [
       ["API client", "API gateway", "HTTP request"],
       ["API gateway", "Gateway rate limiter", "Tenant + route"],
@@ -53,6 +65,12 @@ export const starterAnswers: Record<string, WorkedAnswer & { topic: Topic; alias
   "workshop-seats": {
     topic: "commerce", aliases: ["ticket booking", "Ticketmaster", "BookMyShow"],
     capacity: "Maintain the stated 300 hold attempts/s opening target for 30 seconds. Load-test requests for different seats separately from 300 clients racing for one seat.",
+    walkthrough: {
+      entities: ["Seat", "Hold", "Reservation", "Operation receipt"],
+      qualityGoal: "Preserve one claim per seat even when confirmation races with expiry, and return a stable result after a client retry.",
+      sayDesign: "The seat row is the authority. I’ll lock it to check the current hold before confirming, and record the receipt with the reservation so a retry can return the same result.",
+      flow: ["Hold or confirm", "Lock seat and commit", "Same transaction", "Confirmation pending", "Send confirmation"],
+    },
     diagram: [
       ["Learner", "Reservation API", "Hold or confirm"],
       ["Reservation API", "Primary database", "Lock seat and commit"],
@@ -70,6 +88,12 @@ export const starterAnswers: Record<string, WorkedAnswer & { topic: Topic; alias
   messaging: {
     topic: "social", aliases: ["WhatsApp", "Messenger", "Slack", "chat"],
     capacity: "At 100,000 users sending 40 messages/day, plan for 4 million writes/day, or about 46/s average. Fan-out and simultaneous socket counts deserve separate budgets.",
+    walkthrough: {
+      entities: ["Conversation", "Membership", "Message", "Device cursor"],
+      qualityGoal: "Preserve ordering within each conversation and let an offline device catch up without losing acknowledged messages.",
+      sayDesign: "I’ll validate membership and save a message before acknowledging it. Online devices get it live. An offline device catches up from its last cursor.",
+      flow: ["Send message", "Validate request", "Check membership", "Durable append", "Committed message", "Live message"],
+    },
     diagram: [
       ["Sender device", "WebSocket gateway", "Send message"],
       ["WebSocket gateway", "Message service", "Validate request"],
@@ -89,6 +113,12 @@ export const starterAnswers: Record<string, WorkedAnswer & { topic: Topic; alias
   notification: {
     topic: "distributed", aliases: ["reminders", "email delivery", "push notification"],
     capacity: "Two million reminders/day averages 23/s. If half cluster into one hour, that hour averages about 278 deliveries/s before retries or multiple channels.",
+    walkthrough: {
+      entities: ["Reminder", "Delivery preference", "Delivery attempt"],
+      qualityGoal: "Deliver reminders near their due time and keep a slow push provider from delaying email.",
+      sayDesign: "The reminder and its outbox entry are saved together. Separate queues let email keep working if a push provider slows down.",
+      flow: ["Schedule or cancel", "Save state and intent", "Due reminders", "Email work", "Email delivery"],
+    },
     diagram: [
       ["Product client", "Reminder API", "Schedule or cancel"],
       ["Reminder API", "Schedule and outbox DB", "Save state and intent"],
@@ -107,6 +137,12 @@ export const starterAnswers: Record<string, WorkedAnswer & { topic: Topic; alias
   video: {
     topic: "social", aliases: ["YouTube", "transcoding", "video processing"],
     capacity: "If 10,000 instructors upload an average 500 MB file, the batch lands about 5 TB of input. Size encoding by minutes of source footage times the number and cost of renditions.",
+    walkthrough: {
+      entities: ["Upload session", "Video", "Rendition", "Playback manifest"],
+      qualityGoal: "Let large uploads resume and expose only authorized, verified renditions.",
+      sayDesign: "The client uploads bytes directly to object storage. Workers transcode the verified file, then the player fetches authorized segments from the CDN.",
+      flow: ["Request signed parts", "Upload bytes", "Verify and mark ready", "Enqueue rendition", "Claim job", "Write segments", "Fetch asset on miss", "Manifest and segments"],
+    },
     diagram: [
       ["Uploader", "Upload API", "Request signed parts"],
       ["Uploader", "Object storage", "Upload bytes"],
@@ -126,6 +162,12 @@ export const starterAnswers: Record<string, WorkedAnswer & { topic: Topic; alias
   dispatch: {
     topic: "realtime", aliases: ["courier matching", "driver assignment"],
     capacity: "If 50,000 available couriers each report every five seconds, ingest 10,000 location events/s. Size the dispatch path independently from analytics and broad notification traffic.",
+    walkthrough: {
+      entities: ["Courier", "Location sample", "Pickup", "Assignment lease"],
+      qualityGoal: "Match nearby couriers using fresh locations and keep each pickup’s active assignment exclusive.",
+      sayDesign: "I’ll shortlist couriers with fresh locations, then reserve one with an expiring lease. A late acceptance cannot replace a newer assignment.",
+      flow: ["Location update", "Upsert recent cell", "Request pickup", "Query nearby couriers", "Reserve with lease", "Send assignment offer", "Notify courier"],
+    },
     diagram: [
       ["Courier app", "Location ingest", "Location update"],
       ["Location ingest", "Spatial index", "Upsert recent cell"],
@@ -144,6 +186,12 @@ export const starterAnswers: Record<string, WorkedAnswer & { topic: Topic; alias
   "support-rag": {
     topic: "ai", aliases: ["RAG", "customer support chatbot", "document question answering"],
     capacity: "At 20,000 questions/day and 3,000 context tokens each, budget about 60 million input tokens/day for context before prompts and output. Cap documents and context length.",
+    walkthrough: {
+      entities: ["Tenant", "Article revision", "Chunk", "Citation"],
+      qualityGoal: "Keep retrieval within the learner’s permissions and cite the current policy version or abstain.",
+      sayDesign: "I’ll retrieve only documents this learner can access, give that evidence to the model, and verify the citations. If the evidence is too weak, I’ll say I don’t have an answer.",
+      flow: ["Question + account", "Retrieve allowed chunks", "Context and instructions", "Draft answer", "Check evidence"],
+    },
     diagram: [
       ["Policy uploads", "Ingestion workers", "Index authorized chunks", "async"],
       ["Ingestion workers", "Tenant index", "Versioned embeddings"],
