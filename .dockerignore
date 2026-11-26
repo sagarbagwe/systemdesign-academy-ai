@@ -1,0 +1,7 @@
+.git
+.next
+node_modules
+out
+server/target
+.openai
+.env*
