@@ -6,17 +6,19 @@ import {
 } from "lucide-react";
 import { useEffect, useRef, useState, type ReactNode } from "react";
 import { api, ApiError, hasAccountServer, type Account, type Capabilities, type WorkspaceSnapshot } from "./api";
-import { cases, lessons, tracks, type TrackId } from "./catalog";
+import { lessons, tracks, type TrackId } from "./catalog";
+import { cases, caseSearchText, matchesSearch } from "./problems";
 import { CaseLibrary, Dashboard, Heading, Learning, LessonPage } from "./learning";
 import { blankDraft, draftId, emptyProgress, loadProgress, reviewDraft, storageKey, type Attempt, type Draft, type Mode, type Progress } from "./model";
 import { Settings, Tutor } from "./options";
 import { PracticeEditor, ProgressPage, ProjectPage, Report } from "./practice";
+import { defaultHubFilters, PracticeHub, WorkedSolution } from "./practice-hub";
 
 const menus = [
   { title: "WORKSPACE", items: [
     { route: "overview", title: "Overview", icon: LayoutDashboard },
     { route: "learn", title: "Learning paths", icon: BookOpen },
-    { route: "practice", title: "Problem bank", icon: Target },
+    { route: "practice", title: "Practice Hub", icon: Target },
     { route: "projects", title: "Build projects", icon: CodeXml },
   ] },
   { title: "PRACTICE TOOLS", items: [
@@ -58,9 +60,9 @@ function SearchDialog({ open, close }: { open: boolean; close: () => void }) {
     }
   }, [open]);
   const matched = [
-    ...lessons.map((lesson) => ({ href: `lesson/${lesson.id}`, title: lesson.title, description: lesson.summary, group: "Lesson" })),
-    ...cases.map((item) => ({ href: `design/${item.id}`, title: item.title, description: item.summary, group: "Problem" })),
-  ].filter((item) => `${item.title} ${item.description}`.toLowerCase().includes(query.trim().toLowerCase())).slice(0, 8);
+    ...lessons.map((lesson) => ({ href: `lesson/${lesson.id}`, title: lesson.title, description: lesson.summary, group: "Lesson", search: `${lesson.title} ${lesson.summary}` })),
+    ...cases.map((item) => ({ href: `design/${item.id}`, title: item.title, description: item.summary, group: "Problem", search: caseSearchText(item) })),
+  ].filter((item) => matchesSearch(item.search, query)).slice(0, 8);
   return (
     <dialog ref={ref} onClose={close} className="search-dialog">
       <div className="search-input-row">
@@ -83,6 +85,7 @@ export default function Workspace() {
   const [ready, setReady] = useState(false);
   const [writable, setWritable] = useState(true);
   const [search, setSearch] = useState(false);
+  const [hubFilters, setHubFilters] = useState(defaultHubFilters);
   const [drawer, setDrawer] = useState(false);
   const [account, setAccount] = useState<Account | null>(null);
   const [revision, setRevision] = useState(0);
@@ -181,7 +184,7 @@ export default function Workspace() {
   }
 
   const [view, id, parentId] = route.split("/");
-  const current = { lesson: "learn", design: "practice", mock: "mocks", project: "projects", report: "progress" }[view] || view;
+  const current = { lesson: "learn", design: "practice", answer: "practice", mock: "mocks", project: "projects", report: "progress" }[view] || view;
   const currentTitle = menus.flatMap((menu) => menu.items).find((item) => item.route === current)?.title || "Settings";
   const activeTrack = tracks.find((item) => item.id === progress.profile.track) || tracks[0];
   const initials = progress.profile.name ? progress.profile.name.split(/\s+/).slice(0, 2).map((word) => word[0]?.toUpperCase()).join("") : "S";
@@ -192,7 +195,8 @@ export default function Workspace() {
 
   if (view === "overview") content = <Dashboard progress={progress} />;
   if (view === "learn") content = <Learning progress={progress} chooseTrack={chooseTrack} />;
-  if (view === "practice") content = <CaseLibrary key="design" mode="design" />;
+  if (view === "practice") content = <PracticeHub filters={hubFilters} setFilters={setHubFilters} />;
+  if (view === "answer" && item) content = <WorkedSolution item={item} />;
   if (view === "mocks") content = <CaseLibrary key="mock" mode="mock" />;
   if (view === "projects") content = <CaseLibrary key="project" mode="project" />;
   if (view === "progress") content = <ProgressPage progress={progress} />;

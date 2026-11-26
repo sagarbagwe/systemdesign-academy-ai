@@ -1,15 +1,16 @@
 "use client";
 
 import {
-  Activity, Bell, BookOpen, Check, ChevronRight, Circle, Clock3, Code2, Gauge,
+  Activity, Bell, BookOpen, Check, ChevronRight, Circle, Clock3, Code2, Database, Gauge,
   Layers3, Link2, ListChecks, MessagesSquare, Network, Play, Route, Sparkles, Target, Ticket, Video, Waypoints,
 } from "lucide-react";
 import { useState } from "react";
-import { cases, lessons, tracks, type Case, type Lesson, type TrackId } from "./catalog";
+import { lessons, tracks, type Case, type Lesson, type TrackId } from "./catalog";
+import { cases } from "./problems";
 import { elapsedMinutes, practiceDate, type Progress } from "./model";
 
 const glyphs = {
-  activity: Activity, bell: Bell, layers: Layers3, network: Network, sparkles: Sparkles,
+  activity: Activity, bell: Bell, database: Database, layers: Layers3, network: Network, sparkles: Sparkles,
   link: Link2, gauge: Gauge, ticket: Ticket, messages: MessagesSquare, video: Video, route: Route,
 };
 
@@ -112,7 +113,7 @@ export function Dashboard({ progress }: { progress: Progress }) {
       </section>
 
       <section className="section-tail">
-        <div className="section-heading"><h2>Popular practice problems</h2><a href="#practice">View problem bank</a></div>
+        <div className="section-heading"><h2>Popular practice problems</h2><a href="#practice">Open Practice Hub</a></div>
         <div className="case-grid">{cases.slice(0, 3).map((item) => <CaseCard key={item.id} item={item} />)}</div>
       </section>
     </>
@@ -198,11 +199,10 @@ export function LessonPage({ lesson, choice, completed, onCheck }: {
   );
 }
 
-export function CaseLibrary({ mode }: { mode: "design" | "mock" | "project" }) {
+export function CaseLibrary({ mode }: { mode: "mock" | "project" }) {
   const [level, setLevel] = useState("All levels");
   const list = cases.filter((item) => (mode !== "project" || item.project) && (level === "All levels" || item.level === level));
   const copy = {
-    design: ["Problem bank", "Work through original system design prompts and compare your attempts."],
     mock: ["Mock interviews", "Practice one question at a time in a timed, guided interview."],
     project: ["Build projects", "Turn architectural decisions into working services and verify the behavior under load."],
   }[mode];

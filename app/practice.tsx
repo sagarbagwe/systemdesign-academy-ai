@@ -2,7 +2,8 @@
 
 import { Check, Clock3, GitBranch, Layers3, Plus, Timer, Trash2 } from "lucide-react";
 import { useEffect, useId, useState } from "react";
-import { cases, lessons, type Case } from "./catalog";
+import { lessons, type Case } from "./catalog";
+import { cases } from "./problems";
 import { Heading } from "./learning";
 import {
   components, practiceDate, sections, totalReview, type Attempt, type Component, type Draft, type Mode, type Progress,
@@ -116,7 +117,7 @@ export function PracticeEditor({ item, mode, draft, update, submit, parent, save
 
   return (
     <>
-      <a className="back-link" href={mode === "mock" ? "#mocks" : "#practice"}>{mode === "mock" ? "Mock interviews" : "Problem bank"}</a>
+      <a className="back-link" href={mode === "mock" ? "#mocks" : "#practice"}>{mode === "mock" ? "Mock interviews" : "Practice Hub"}</a>
       <Heading title={item.title} description={mode === "mock" ? "Timed mock interview" : "Guided design practice"} />
       <div className="practice-layout">
         <aside>
@@ -126,6 +127,7 @@ export function PracticeEditor({ item, mode, draft, update, submit, parent, save
             <h3>Requirements</h3><ul>{item.requirements.map((value) => <li key={value}>{value}</li>)}</ul>
             {parent && <div className="callout"><div><h3>Retry constraint</h3><p>{item.retry}</p></div></div>}
             <div className="tags">{item.concepts.map((concept) => <span key={concept}>{concept}</span>)}</div>
+            {mode === "design" && <a className="text-link practice-answer-link" href={`#answer/${item.id}`}>View worked answer</a>}
           </section>
           {mode === "design" && <Diagram draft={draft} update={update} />}
         </aside>
@@ -182,7 +184,10 @@ export function Report({ attempt, previous, item }: { attempt: Attempt; previous
           <div className="panel reading-card next-report">
             <h2>Try a new constraint</h2><p>{item.retry}</p>
             {lesson && <a className="text-link" href={`#lesson/${lesson.id}`}>Review {lesson.title.toLowerCase()}</a>}
-            <a className="button primary" href={`#${attempt.mode}/${item.id}/${attempt.id}`}>Retry practice</a>
+            <div className="button-wrap">
+              <a className="button primary" href={`#${attempt.mode}/${item.id}/${attempt.id}`}>Retry practice</a>
+              <a className="button neutral" href={`#answer/${item.id}`}>View worked answer</a>
+            </div>
           </div>
         </aside>
         <section className="panel editor review">

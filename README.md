@@ -13,7 +13,7 @@ npm ci
 npm run dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000). This mode includes four learning paths, ten lessons with quizzes, eight practice prompts, three projects, a curriculum tutor, and browser-local progress and exports. Practice feedback highlights coverage of case-specific concepts and suggests a retry constraint.
+Open [http://localhost:3000](http://localhost:3000). This mode includes four learning paths, ten lessons with quizzes, 104 Practice Hub problems with worked answers, three projects, a curriculum tutor, and browser-local progress and exports. Practice feedback highlights coverage of case-specific concepts and suggests a retry constraint.
 
 `npm run build` writes a static deployment to `out/`. The hosted preview uses this mode.
 
