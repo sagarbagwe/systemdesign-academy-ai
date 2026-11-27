@@ -63,7 +63,7 @@ export const starterAnswers: Record<string, WorkedAnswer & { topic: Topic; alias
     tradeoff: "A shared atomic counter gives tighter fleet-wide enforcement. Leasing local tokens reduces latency and store calls but allows bounded overshoot and delayed policy changes.",
   },
   "workshop-seats": {
-    topic: "commerce", aliases: ["ticket booking", "Ticketmaster", "BookMyShow"],
+    topic: "commerce", aliases: ["ticket booking", "BookMyShow"],
     capacity: "Maintain the stated 300 hold attempts/s opening target for 30 seconds. Load-test requests for different seats separately from 300 clients racing for one seat.",
     walkthrough: {
       entities: ["Seat", "Hold", "Reservation", "Operation receipt"],

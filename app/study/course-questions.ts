@@ -2,7 +2,7 @@ export const courseQuestions = [
   { name: "Bitly", problem: "url-shortener" },
   { name: "Dropbox", problem: "cloud-drive-sync" },
   { name: "Local Delivery Service", problem: "local-delivery" },
-  { name: "Ticketmaster", problem: "workshop-seats" },
+  { name: "Ticketmaster", problem: "event-tickets" },
   { name: "FB News Feed", problem: "social-feed" },
   { name: "Tinder", problem: "dating-matches" },
   { name: "LeetCode", problem: "online-judge" },

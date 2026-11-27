@@ -23,7 +23,31 @@ export type AnswerWalkthrough = {
   sayDesign?: string;
 };
 
+export type TechnologyChoice = { technology: string; reason: string };
+
+export type TechnologyPlan = {
+  storage: TechnologyChoice;
+  routing: TechnologyChoice;
+  support: TechnologyChoice;
+  ingress?: readonly string[];
+};
+
+export type DesignSection = {
+  title: string;
+  description: string;
+  connections: readonly string[];
+};
+
+export type DesignDetails = {
+  assumptions: string;
+  endpoints: readonly { request: string; result: string }[];
+  records: readonly { name: string; key: string; purpose: string }[];
+  sections: readonly DesignSection[];
+  deepDives: readonly { title: string; answer: string }[];
+};
+
 export type WorkedAnswer = {
+  details?: DesignDetails;
   walkthrough: AnswerWalkthrough;
   capacity: string;
   diagram: readonly DesignConnection[];

@@ -1,4 +1,4 @@
-import type { Topic, WorkedAnswer } from "./problems/types";
+import type { TechnologyPlan, Topic, WorkedAnswer } from "./problems/types";
 
 export type TrackId = "foundations" | "distributed" | "advanced" | "ai";
 export type Level = "Beginner" | "Intermediate" | "Advanced";
@@ -159,10 +159,10 @@ export type Case = {
   id: string; title: string; level: Level; time: number; icon: string; color: string;
   summary: string; scenario: string; requirements: readonly string[]; concepts: readonly string[];
   terms: string[][]; retry: string; lessonId: string; project?: string[];
-  topic: Topic; aliases: readonly string[]; answer: WorkedAnswer;
+  topic: Topic; aliases: readonly string[]; answer: WorkedAnswer; technology: TechnologyPlan;
 };
 
-export const starterCases: Omit<Case, "topic" | "aliases" | "answer">[] = [
+export const starterCases: Omit<Case, "topic" | "aliases" | "answer" | "technology">[] = [
   {
     id: "url-shortener", title: "Design a URL Shortener", level: "Beginner", time: 25, icon: "link", color: "purple",
     summary: "Build a high-read service for short links and fast redirects.",

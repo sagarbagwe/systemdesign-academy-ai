@@ -5,12 +5,14 @@ import { commerce } from "./commerce";
 import { courseProblems } from "./course-problems";
 import { data } from "./data";
 import { distributed } from "./distributed";
+import { eventTickets } from "./event-tickets";
 import { foundations } from "./foundations";
 import { realtime } from "./realtime";
 import { social } from "./social";
 import { starterAnswers } from "./starter";
 import { traffic } from "./traffic";
-import { topics, type Problem, type Topic } from "./types";
+import { technologyPlans } from "./technology-plans";
+import { topics, type DesignConnection, type Problem, type TechnologyPlan, type Topic, type WorkedAnswer } from "./types";
 
 const metadata: Record<Topic, { icon: string; color: string; lessonId: string; entries: Problem[] }> = {
   foundations: { icon: "layers", color: "purple", lessonId: "requirements", entries: foundations },
@@ -25,7 +27,7 @@ const metadata: Record<Topic, { icon: string; color: string; lessonId: string; e
 
 const duration: Record<Level, number> = { Beginner: 25, Intermediate: 30, Advanced: 40 };
 
-function toCase(problem: Problem, topic: Topic): Case {
+function toCase(problem: Problem, topic: Topic): Omit<Case, "technology"> {
   const { id, title, level, concepts, scenario, requirements, aliases = [], followUp, ...answer } = problem;
   const { lessonId, icon, color } = metadata[topic];
   return {
@@ -41,6 +43,41 @@ function toCase(problem: Problem, topic: Topic): Case {
   };
 }
 
+function addLoadBalancer(answer: WorkedAnswer, technology: TechnologyPlan): WorkedAnswer {
+  const routedActions = new Set(technology.ingress);
+  if (routedActions.size === 0) return answer;
+
+  const layerFour = technology.routing.technology.includes("Network Load Balancer");
+  const balancer = layerFour ? "L4 load balancer" : "L7 load balancer";
+  const protocol = layerFour ? "TCP" : "HTTPS";
+  const ingressByAction = new Map<string, string>();
+  const sources = new Set<string>();
+  const diagram = answer.diagram.flatMap((edge): DesignConnection[] => {
+    const [from, to, action, style] = edge;
+    if (!routedActions.has(action)) return [edge];
+
+    const ingress = `${protocol} from ${from}`;
+    ingressByAction.set(action, ingress);
+    const forwarded = [balancer, to, action, style] as const;
+    if (sources.has(from)) return [forwarded];
+    sources.add(from);
+    return [[from, balancer, ingress], forwarded];
+  });
+
+  const flow = [...new Set(answer.walkthrough.flow.flatMap((action) => {
+    const ingress = ingressByAction.get(action);
+    return ingress ? [ingress, action] : [action];
+  }))];
+
+  return { ...answer, diagram, walkthrough: { ...answer.walkthrough, flow } };
+}
+
+function withTechnology(item: Omit<Case, "technology">): Case {
+  const technology = technologyPlans[item.id];
+  if (!technology) throw new Error(`Missing technology plan for ${item.id}`);
+  return { ...item, technology, answer: addLoadBalancer(item.answer, technology) };
+}
+
 export const cases: Case[] = [
   ...starterCases.map((item) => {
     const { topic, aliases = [], ...answer } = starterAnswers[item.id];
@@ -48,7 +85,8 @@ export const cases: Case[] = [
   }),
   ...(Object.keys(topics) as Topic[]).flatMap((topic) => metadata[topic].entries.map((problem) => toCase(problem, topic))),
   ...courseProblems.map(({ topic, ...problem }) => toCase(problem, topic)),
-];
+  toCase(eventTickets, "commerce"),
+].map(withTechnology);
 
 const syllabusNames = new Map(courseQuestions.map(({ problem, name }) => [problem, name]));
 

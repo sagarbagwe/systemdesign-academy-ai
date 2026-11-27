@@ -5,7 +5,7 @@ import dynamic from "next/dynamic";
 import { useState } from "react";
 import { lessons, type Case } from "./catalog";
 import { Heading } from "./learning";
-import type { DesignConnection } from "./problems/types";
+import type { DesignConnection, WorkedAnswer } from "./problems/types";
 
 const AnswerArchitecture = dynamic(() => import("./answer-architecture"), {
   loading: () => <p role="status">Loading design diagram…</p>,
@@ -35,13 +35,16 @@ function Explain({ children }: { children: React.ReactNode }) {
   );
 }
 
-function DataFlow({ item }: { item: Case }) {
-  const [visible, setVisible] = useState(1);
-  const { diagram, walkthrough } = item.answer;
+function answerFlow({ diagram, walkthrough }: WorkedAnswer) {
   const selected = walkthrough.flow
     .map((action) => diagram.find((edge) => edge[2] === action))
     .filter((edge): edge is DesignConnection => edge !== undefined);
-  const flow = selected.length ? selected : diagram;
+  return selected.length ? selected : diagram;
+}
+
+function DataFlow({ item }: { item: Case }) {
+  const [visible, setVisible] = useState(1);
+  const flow = answerFlow(item.answer);
   const [from, to] = flow[visible - 1];
 
   return (
@@ -68,7 +71,61 @@ function DataFlow({ item }: { item: Case }) {
   );
 }
 
-function StepContent({ item, step }: { item: Case; step: StepId }) {
+function Architecture({ item }: { item: Case }) {
+  const { answer, technology } = item;
+  const [active, setActive] = useState<number | null>(null);
+  const sections = answer.details?.sections ?? [];
+  const section = active === null ? undefined : sections[active];
+  const connections = section
+    ? answer.diagram.filter((edge) => section.connections.includes(edge[2]))
+    : answer.diagram;
+  const choices = [
+    { label: "Database and storage", ...technology.storage },
+    { label: "Load balancing and routing", ...technology.routing },
+    { label: "Supporting components", ...technology.support },
+  ];
+
+  return (
+    <>
+      <p>{answer.design}</p>
+      <h3>Which technologies to use and why</h3>
+      <dl className="technology-choices">
+        {choices.map(({ label, technology, reason }) => (
+          <div key={label}>
+            <dt>{label}</dt>
+            <dd><strong>{technology}</strong><p>{reason}</p></dd>
+          </div>
+        ))}
+      </dl>
+      {sections.length > 0 && (
+        <>
+          <h3>Build the design one requirement at a time</h3>
+          <div className="design-view-controls" role="group" aria-label="Diagram views">
+            <button type="button" className={`filter ${active === null ? "selected" : ""}`} aria-pressed={active === null} onClick={() => setActive(null)}>Full system</button>
+            {sections.map((view, index) => (
+              <button type="button" key={view.title} className={`filter ${active === index ? "selected" : ""}`} aria-pressed={active === index} onClick={() => setActive(index)}>
+                {index + 1}. {view.title}
+              </button>
+            ))}
+          </div>
+          {section && <p>{section.description}</p>}
+        </>
+      )}
+      <AnswerArchitecture title={item.title} label={section?.title} connections={connections} />
+      <h3>Storage and state</h3>
+      <p>{answer.data}</p>
+      {answer.details?.records && (
+        <dl className="design-records">
+          {answer.details.records.map(({ name, key, purpose }) => (
+            <div key={name}><dt>{name}</dt><dd><code>{key}</code><p>{purpose}</p></dd></div>
+          ))}
+        </dl>
+      )}
+    </>
+  );
+}
+
+function StepContent({ item, step, full = false }: { item: Case; step: StepId; full?: boolean }) {
   const { answer } = item;
   const { entities, qualityGoal, sayDesign } = answer.walkthrough;
   const goal = qualityGoal.charAt(0).toLowerCase() + qualityGoal.slice(1);
@@ -79,6 +136,7 @@ function StepContent({ item, step }: { item: Case; step: StepId }) {
       return (
         <>
           <p>{item.scenario}</p>
+          {answer.details?.assumptions && <p><strong>Assumptions.</strong> {answer.details.assumptions}</p>}
           <h3>What the system needs to do</h3>
           <ul>{item.requirements.map((requirement) => <li key={requirement}>{requirement}</li>)}</ul>
           <h3>Non-functional focus</h3>
@@ -99,18 +157,29 @@ function StepContent({ item, step }: { item: Case; step: StepId }) {
         <>
           <h3>Caller contract</h3>
           <p>{answer.api}</p>
+          {answer.details?.endpoints && (
+            <dl className="design-records">
+              {answer.details.endpoints.map(({ request, result }) => <div key={request}><dt><code>{request}</code></dt><dd>{result}</dd></div>)}
+            </dl>
+          )}
           <Explain>“I’ll describe what the caller sends, what a successful call returns, and what happens when it fails. That gives us a contract to trace through the diagram.”</Explain>
         </>
       );
     case "data-flow":
-      return <DataFlow item={item} />;
+      return full ? (
+        <>
+          <ol className="written-flow">
+            {answerFlow(answer).map(([from, to, action]) => (
+              <li key={action}><strong>{action}.</strong> {from} → {to}</li>
+            ))}
+          </ol>
+          <a className="button neutral" href={stepLink(item.id, "data-flow")}>Build this diagram step by step</a>
+        </>
+      ) : <DataFlow item={item} />;
     case "high-level-design":
       return (
         <>
-          <p>{answer.design}</p>
-          <AnswerArchitecture title={item.title} connections={answer.diagram} />
-          <h3>Storage and state</h3>
-          <p>{answer.data}</p>
+          <Architecture item={item} />
           <Explain>“{sayDesign ?? `I’ll trace the path from ${answer.diagram[0][0]} to ${answer.diagram[0][1]}, then show where we save state. The design needs to ${goal}`}”</Explain>
         </>
       );
@@ -128,6 +197,7 @@ function StepContent({ item, step }: { item: Case; step: StepId }) {
           )}
           <h3>Reliability and failure handling</h3><p>{answer.reliability}</p>
           <h3>Trade-offs</h3><p>{answer.tradeoff}</p>
+          {answer.details?.deepDives.map(({ title, answer: response }) => <section key={title}><h3>{title}</h3><p>{response}</p></section>)}
           <h3>Practice follow-up</h3><p>{item.retry}</p>
           <Explain>“I’ll pick a failure that threatens this requirement. Here’s how I’d handle it. {answer.reliability}”</Explain>
           {lesson && <a className="text-link" href={`#lesson/${lesson.id}`}>Review {lesson.title.toLowerCase()}</a>}
@@ -137,8 +207,8 @@ function StepContent({ item, step }: { item: Case; step: StepId }) {
 }
 
 export default function WorkedSolution({ item, stepId }: { item: Case; stepId?: string }) {
-  const index = Math.max(0, steps.findIndex(({ id }) => id === stepId));
-  const step = steps[index];
+  const index = steps.findIndex(({ id }) => id === stepId);
+  const step = index < 0 ? undefined : steps[index];
   const previous = steps[index - 1];
   const next = steps[index + 1];
 
@@ -146,9 +216,10 @@ export default function WorkedSolution({ item, stepId }: { item: Case; stepId?: 
     <>
       <a className="back-link" href="#practice">Practice Hub</a>
       <div className="solution-heading">
-        <Heading title={item.title} description="Worked answer" />
+        <Heading title={item.title} description={step ? "Worked answer" : "Full design breakdown"} />
         <div className="walkthrough-actions">
-          {step.id !== "high-level-design" && (
+          {step && <a className="button neutral" href={`#answer/${item.id}`}>Read full answer</a>}
+          {step?.id !== "high-level-design" && (
             <a className="button neutral" href={stepLink(item.id, "high-level-design")}><GitBranch size={16} aria-hidden="true" />Open diagram</a>
           )}
           <a className="button primary" href={`#design/${item.id}`}><Target size={16} aria-hidden="true" />Practice this problem</a>
@@ -158,23 +229,40 @@ export default function WorkedSolution({ item, stepId }: { item: Case; stepId?: 
         <ol>
           {steps.map(({ id, label }, position) => (
             <li key={id}>
-              <a href={stepLink(item.id, id)} aria-current={step.id === id ? "step" : undefined}>
+              <a href={stepLink(item.id, id)} aria-current={step?.id === id ? "step" : undefined}>
                 <span>{position + 1}</span>{label}
               </a>
             </li>
           ))}
         </ol>
       </nav>
-      <article className={`panel reading-card walkthrough-panel ${step.id === "high-level-design" || step.id === "data-flow" ? "architecture-card" : ""}`}>
-        <h2>{step.label}</h2>
-        <StepContent key={step.id} item={item} step={step.id} />
-      </article>
-      <nav className="walkthrough-pagination" aria-label="Navigate answer steps">
-        {previous && <a className="button neutral" href={stepLink(item.id, previous.id)}>Back to {previous.label.toLowerCase()}</a>}
-        {next && <a className="button primary" href={stepLink(item.id, next.id)}>Next · {next.label}</a>}
-      </nav>
+      {step ? (
+        <>
+          <article className="panel reading-card walkthrough-panel">
+            <h2>{step.label}</h2>
+            <StepContent key={step.id} item={item} step={step.id} />
+          </article>
+          <nav className="walkthrough-pagination" aria-label="Navigate answer steps">
+            {previous && <a className="button neutral" href={stepLink(item.id, previous.id)}>Back to {previous.label.toLowerCase()}</a>}
+            {next && <a className="button primary" href={stepLink(item.id, next.id)}>Next · {next.label}</a>}
+          </nav>
+        </>
+      ) : (
+        <div className="full-answer">
+          {steps.map(({ id, label }, position) => (
+            <section className="panel reading-card walkthrough-panel" key={id} aria-labelledby={`answer-${id}`}>
+              <h2 id={`answer-${id}`}><span className="section-step">{position + 1}.</span> {label}</h2>
+              <StepContent item={item} step={id} full />
+            </section>
+          ))}
+        </div>
+      )}
       <p className="walkthrough-reference">
-        Step order adapted from <a className="text-link" href="https://www.hellointerview.com/learn/system-design/in-a-hurry/delivery" target="_blank" rel="noreferrer">Hello Interview’s public delivery framework</a>.
+        {item.id === "event-tickets" ? (
+          <>Related interview example. <a className="text-link" href="https://www.hellointerview.com/learn/system-design/problem-breakdowns/ticketmaster" target="_blank" rel="noreferrer">Hello Interview’s public ticket-booking breakdown</a></>
+        ) : (
+          <>Step order adapted from <a className="text-link" href="https://www.hellointerview.com/learn/system-design/in-a-hurry/delivery" target="_blank" rel="noreferrer">Hello Interview’s public delivery framework</a>.</>
+        )}
       </p>
     </>
   );

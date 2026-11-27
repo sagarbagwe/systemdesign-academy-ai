@@ -1,0 +1,110 @@
+import type { Problem, TechnologyPlan } from "./types";
+
+export const eventTicketsTechnology: TechnologyPlan = {
+  storage: {
+    technology: "PostgreSQL",
+    reason: "Use one authoritative write database for seat ownership, holds, orders, and idempotency results. A short transaction locks each requested seat and commits all changes together. Keep the external payment call outside that transaction.",
+  },
+  routing: {
+    technology: "AWS Application Load Balancer (L7)",
+    reason: "An application load balancer is the HTTPS entry point. Layer 7 reads the request path and routes event views, search, and checkout to their own pools. Health checks let it remove unhealthy replicas from rotation. Separate the booking pool so a search traffic spike does not consume its workers.",
+  },
+  support: {
+    technology: "CloudFront, Redis, OpenSearch, and SQS",
+    reason: "Serve versioned seat-map files through the CDN, use Redis for advisory availability, and query OpenSearch for event discovery. Send capture and notification jobs to SQS through a transactional outbox so a committed order has a recoverable next step.",
+  },
+};
+
+export const eventTickets: Problem = {
+  id: "event-tickets",
+  title: "Design an Event Ticket Booking Platform",
+  level: "Advanced",
+  aliases: ["Ticketmaster", "concert tickets", "seat booking", "ticket search"],
+  scenario: "Fans browse concerts, see an assigned-seat map, and buy seats during a scheduled sale. A popular show can attract hundreds of thousands of simultaneous visitors.",
+  requirements: [
+    "Load the event details and an availability overlay for its seat map.",
+    "Find shows by performer, city, and date.",
+    "Hold several adjacent seats and buy them without ever assigning a seat to two orders.",
+  ],
+  concepts: ["Row locking", "Search indexing", "Admission control"],
+  walkthrough: {
+    entities: ["Event", "Venue map", "Event seat", "Hold", "Order", "Payment attempt"],
+    qualityGoal: "Keep event discovery available with a slightly stale view while preserving exclusive ownership and safe payment for every booked seat.",
+    sayDesign: "I’ll serve browse and search from read-optimized views. For checkout, PostgreSQL gives us one place to decide who owns a seat. I’ll lock rows only long enough to record an expiring hold, release those locks, then handle payment with a retry-safe order workflow.",
+    flow: ["Request seat hold", "Route booking request", "Lock and hold seats", "Authorize outside transaction", "Commit pending order and outbox", "Capture payment by order ID"],
+  },
+  capacity: "If 300,000 fans refresh once every six seconds, the peak is about 50,000 seat-map reads/s. If caches absorb 95% of that read traffic, about 2,500 reads/s reach the origin. Admission to the hold endpoint should follow the measured write capacity for the busiest event. The number of fans alone cannot tell us that capacity.",
+  api: "Event details and search use GET requests. Holding seats and starting checkout are authenticated POST requests with caller-scoped idempotency keys. Clients poll an order status endpoint after the asynchronous checkout starts.",
+  design: "Split the design into event browsing, event search, and seat booking. A load balancer routes each path to its own pool. Browsing and search use advisory data. A booking succeeds only through the PostgreSQL writer that owns that event's seats.",
+  data: "PostgreSQL owns events, seat claims, holds, orders, and payment receipts. Layout files are versioned in object storage. Redis and OpenSearch store rebuildable views with their own freshness indicators.",
+  reliability: "Create an expiring hold in a short transaction and authorize payment after releasing the seat locks. Confirm that the same hold is still active before converting it into an order awaiting capture. An outbox makes capture retryable by order ID. If capture is uncertain, keep the seats claimed and reconcile against the processor before releasing them.",
+  tradeoff: "A single authoritative writer per event makes multi-seat bookings straightforward. Partitioning by event increases total capacity. Further splitting one event by seating section makes cross-section orders harder and is worth revisiting only after measuring contention.",
+  followUp: "One event gets ten times its expected traffic and the payment provider times out after authorizing several orders. Explain which requests the waiting room admits, which seats are still claimed, and how you recover each order.",
+  diagram: [
+    ["Fan app", "CloudFront CDN", "Request immutable seat-map file"],
+    ["CloudFront CDN", "S3 venue maps", "Fetch map on cache miss"],
+    ["Fan app", "L7 load balancer", "Request event information"],
+    ["L7 load balancer", "Event service replicas", "Route event details"],
+    ["Event service replicas", "Redis availability cache", "Read advisory seat overlay"],
+    ["Event service replicas", "PostgreSQL", "Read catalog on miss"],
+    ["PostgreSQL", "Projection workers", "Publish committed changes", "async"],
+    ["Projection workers", "Redis availability cache", "Update seat overlay", "async"],
+    ["Fan app", "L7 load balancer", "Request event search"],
+    ["L7 load balancer", "Search service replicas", "Route search request"],
+    ["Search service replicas", "OpenSearch", "Find matching events"],
+    ["Projection workers", "OpenSearch", "Index catalog changes", "async"],
+    ["Fan app", "Virtual waiting room", "Request seat hold"],
+    ["Virtual waiting room", "L7 load balancer", "Admit at safe rate"],
+    ["L7 load balancer", "Booking service replicas", "Route booking request"],
+    ["Booking service replicas", "PostgreSQL", "Lock and hold seats"],
+    ["Booking service replicas", "Payment provider", "Authorize outside transaction"],
+    ["Booking service replicas", "PostgreSQL", "Commit pending order and outbox"],
+    ["PostgreSQL", "Outbox relay", "Read committed capture intent", "async"],
+    ["Outbox relay", "SQS capture queue", "Relay outbox intent", "async"],
+    ["SQS capture queue", "Capture worker", "Process capture job", "async"],
+    ["Capture worker", "Payment provider", "Capture payment by order ID"],
+    ["Capture worker", "PostgreSQL", "Record confirmed payment"],
+    ["Booking service replicas", "409 seat conflict", "Seat was taken", "reject"],
+  ],
+  details: {
+    assumptions: "Start with assigned seats, one currency, and sales for an existing catalog of venues and events. Use a payment provider that supports authorization, capture, and idempotent requests.",
+    endpoints: [
+      { request: "GET /events/{id}", result: "Returns event details, a versioned seat-map URL, and section availability with an as-of time." },
+      { request: "GET /events/search?q=&city=&after=&cursor=", result: "Returns a ranked page. Selecting a result refreshes its event view." },
+      { request: "POST /events/{id}/holds { seatIds, requestId }", result: "Returns a hold ID and expiry, or 409 when any requested seat was already claimed." },
+      { request: "POST /holds/{id}/checkout { paymentMethodId, requestId }", result: "Returns an order ID with pending status. Repeat requests replay the same order." },
+      { request: "GET /orders/{id}", result: "Returns pending, confirmed, or failed status to the order owner." },
+    ],
+    records: [
+      { name: "Event", key: "event_id", purpose: "Stores the venue, start time, performer, and a versioned layout reference." },
+      { name: "Event seat", key: "(event_id, seat_id)", purpose: "Stores price, active hold ID, lease expiry, and current order ID for one seat." },
+      { name: "Hold", key: "hold_id", purpose: "Binds a buyer to a group of seats until a database-clock deadline." },
+      { name: "Order", key: "order_id and unique hold_id", purpose: "Stores the current checkout state and payment-provider references." },
+      { name: "Operation receipt", key: "(customer_id, request_id)", purpose: "Binds a retry to its original payload and result." },
+      { name: "Outbox", key: "event_id", purpose: "Records each capture or projection update in the same commit as the state change." },
+    ],
+    sections: [
+      {
+        title: "Browse events and seat maps",
+        description: "Keep stable layout files in S3 and serve them from CloudFront. The event service reads a Redis availability overlay with an as-of time. Cached availability helps users choose a section. The booking service checks current ownership when they request a hold.",
+        connections: ["Request immutable seat-map file", "Fetch map on cache miss", "Request event information", "Route event details", "Read advisory seat overlay", "Read catalog on miss", "Publish committed changes", "Update seat overlay"],
+      },
+      {
+        title: "Search for events",
+        description: "The load balancer sends search queries to a separate service pool. OpenSearch indexes performer, venue, city, and event date. An outbox publishes catalog changes, and a projection worker applies them by version so delayed updates cannot overwrite newer documents.",
+        connections: ["Request event search", "Route search request", "Find matching events", "Publish committed changes", "Index catalog changes"],
+      },
+      {
+        title: "Hold seats and check out",
+        description: "A waiting room admits buyers at the rate the booking writer can handle. The booking service verifies the admission token, then locks seats in a stable order, checks the database clock and existing ownership, then records all holds or rejects the request. It authorizes payment outside the transaction, rechecks the hold, then commits an order awaiting capture and an outbox record.",
+        connections: ["Request seat hold", "Admit at safe rate", "Route booking request", "Lock and hold seats", "Authorize outside transaction", "Commit pending order and outbox", "Read committed capture intent", "Relay outbox intent", "Process capture job", "Capture payment by order ID", "Record confirmed payment", "Seat was taken"],
+      },
+    ],
+    deepDives: [
+      { title: "Why PostgreSQL for seat claims?", answer: "A single hold changes multiple seat rows and an operation receipt. PostgreSQL gives us a short transaction, stable lock ordering, unique constraints, and straightforward queries for reconciling holds and orders. A DynamoDB design could use transactional conditional writes as well. It would need keys and a transaction shape planned around every item touched by a hold. I’d start with the relational design and measure contention before changing the writer." },
+      { title: "Two customers request the same seat", answer: "Sort seats by ID and lock their rows in that order. Re-read claim state after acquiring the locks. A hold is available only if the row has no committed order and has no still-active hold. Write all claims and the receipt in one transaction. A losing transaction returns 409. Expiry jobs include the prior hold ID, so a late cleanup cannot clear a newer hold." },
+      { title: "The payment provider accepts a request and loses the response", answer: "Record one payment attempt per order and use its stable ID with the provider. A timeout leaves the outcome unknown. Poll or reconcile provider state before retrying or releasing seats. If authorization succeeds after the hold expires, void the authorization. If capture is awaiting confirmation, keep the order and seats pending until the capture outcome is known. If capture is definitively declined, mark the order failed and release its seat claims in one guarded transaction." },
+      { title: "The public sale is overloaded", answer: "Protect the booking service with a waiting room that issues expiring admission tokens at its measured drain rate. Cache stable event details and use advisory section-level availability reads. Measure per-event lock wait and contention separately. As traffic declines, increase admissions gradually and return a useful queue position or retry interval." },
+    ],
+  },
+};
