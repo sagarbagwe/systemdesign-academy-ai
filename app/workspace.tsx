@@ -291,7 +291,7 @@ export default function Workspace() {
           <button className="icon-button menu-button" aria-label={drawer ? "Close menu" : "Open menu"} aria-expanded={drawer} onClick={() => setDrawer(!drawer)}>{drawer ? <X size={22} /> : <Menu size={22} />}</button>
           <div className="breadcrumbs"><a href="#overview">Workspace</a><ChevronRight size={15} /><span>{currentTitle}</span></div>
           <div className="top-actions">
-            <button className="search-trigger" aria-label="Search workspace" onClick={() => setSearch(true)}><Search size={16} /><span>Search anything</span><kbd>⌘ K</kbd></button>
+            <button className="search-trigger" aria-label="Search workspace" onClick={() => setSearch(true)}><Search size={17} /><span>Search topics and problems</span><kbd>⌘ K</kbd></button>
             <a className="icon-button settings-button" href="#settings" title="Workspace settings" aria-label="Workspace settings"><Settings2 size={19} /></a>
             <a className="avatar" href="#settings" title={progress.profile.name || "Your study profile"} aria-label="Your study profile">{initials}</a>
           </div>

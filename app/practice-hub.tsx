@@ -34,11 +34,13 @@ export function PracticeHub({ filters, setFilters }: { filters: HubFilters; setF
 
   return (
     <>
-      <Heading title="Practice Hub" description={`Browse ${cases.length} system design problems. Try a design or study its worked answer.`} />
-      <p className="practice-source-link">
-        <a className="text-link" href="#maang-hld">MAANG HLD course</a>
-        <a className="text-link" href="#study/prachub">Browse PracHub study topics</a>
-      </p>
+      <div className="hub-heading">
+        <Heading title="Practice Hub" description={`Explore ${cases.length} system design problems and their worked answers.`} />
+        <div className="hub-resources">
+          <a className="text-link" href="#study/prachub">PracHub study topics</a>
+          <a className="button neutral" href="#maang-hld">MAANG HLD course</a>
+        </div>
+      </div>
       <div className="panel hub-toolbar">
         <div className="hub-fields">
           <label className="hub-search">
@@ -79,8 +81,8 @@ export function PracticeHub({ filters, setFilters }: { filters: HubFilters; setF
             <p>{item.summary}</p>
             <div className="case-meta"><Clock3 size={14} /> {item.time} min</div>
             <div className="hub-actions">
-              <a className="button neutral" aria-label={`Practice ${item.title}`} href={`#design/${item.id}`}>Practice</a>
               <a className="button answer-button" aria-label={`View answer for ${item.title}`} href={`#answer/${item.id}`}><BookOpen size={15} /> View answer</a>
+              <a className="button neutral" aria-label={`Practice ${item.title}`} href={`#design/${item.id}`}>Practice</a>
             </div>
           </article>
         ))}

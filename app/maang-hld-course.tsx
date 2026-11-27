@@ -1,4 +1,3 @@
-import { ArrowUpRight } from "lucide-react";
 import { Heading } from "./learning";
 import { hldCompanies, hldConcepts, hldFramework, hldQuestions, hldStudyOrder } from "./study/maang-hld";
 import { studyTopics } from "./study";
@@ -13,11 +12,12 @@ const sections = [
 
 function QuestionList({ start, end, title }: { start: number; end: number; title: string }) {
   return (
-    <section className="panel reading-card hld-section">
+    <section className="hld-section hld-question-section">
       <h2>{title}</h2>
-      <ol className="hld-questions" start={start}>
-        {hldQuestions.slice(start - 1, end).map(({ title, focus, problem, related }) => (
-          <li key={title}>
+      <ol className="hld-questions" role="list" start={start}>
+        {hldQuestions.slice(start - 1, end).map(({ title, focus, problem, related }, index) => (
+          <li key={title} className="panel">
+            <span className="hld-rank" aria-hidden="true">{start + index}</span>
             <div className="hld-question-content">
               <div>
                 <h3>{title}</h3>
@@ -25,7 +25,7 @@ function QuestionList({ start, end, title }: { start: number; end: number; title
                 {related && <a className="text-link" href={`#answer/${related.problem}`}>{related.title}</a>}
               </div>
               <a className="button neutral" href={`#answer/${problem}`} aria-label={`Worked answer for ${title}`}>
-                Worked answer <ArrowUpRight size={14} aria-hidden="true" />
+                Worked answer
               </a>
             </div>
           </li>
@@ -40,8 +40,10 @@ export function MaangHldCourse({ sectionId }: { sectionId?: string }) {
 
   return (
     <>
-      <Heading title="MAANG HLD Interview Prep" description="30 system design questions and 20 core concepts for SDE-2 and senior interviews." />
-      <nav className="filters hld-nav" aria-label="MAANG HLD course sections">
+      <div className="course-header">
+        <Heading title="MAANG HLD Interview Prep" description="30 system design questions and 20 core concepts for SDE-2 and senior interviews." />
+      </div>
+      <nav className="panel hld-nav" aria-label="MAANG HLD course sections">
         {sections.map(({ id, label }) => (
           <a key={id} className={`filter ${id === selected.id ? "selected" : ""}`}
             aria-current={id === selected.id ? "page" : undefined} href={`#maang-hld/${id}`}>{label}</a>

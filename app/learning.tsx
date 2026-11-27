@@ -55,16 +55,15 @@ export function Dashboard({ progress }: { progress: Progress }) {
   return (
     <>
       <section className="hero">
-        <div className="hero-art" aria-hidden="true" />
         <div className="hero-copy">
-          <div className="hero-kicker"><span /> SYSTEM DESIGN WORKSPACE</div>
-          <h1>Think in systems.<br /><em>Design with confidence.</em></h1>
-          <p>Learn the building blocks, practice real architecture problems, and get ready for your next interview.</p>
+          <h1>Practice system <em>design.</em></h1>
+          <p>Learn the core concepts, work through architecture problems, and prepare for your next interview.</p>
           <div className="hero-actions">
             <a href={primary} className="button primary"><Play size={15} fill="currentColor" /> {next ? (done ? "Continue learning" : "Start learning") : "Explore paths"}</a>
             <a href="#practice" className="button hero-secondary">Browse problems</a>
           </div>
         </div>
+        <div className="hero-art" aria-hidden="true" />
       </section>
 
       <section className="stats" aria-label="Your progress">
@@ -106,8 +105,8 @@ export function Dashboard({ progress }: { progress: Progress }) {
             <div className="next-up-content"><span className="small-icon green"><Target size={18} /></span><div><h3>{upcoming.title}</h3><p>{upcoming.level} · {upcoming.time} min practice</p></div></div>
             <a className="button neutral" href={`#design/${upcoming.id}`}>Start practice</a>
           </div>
-          <a className="panel coach-teaser" href="#tutor">
-            <span className="small-icon purple"><Sparkles size={18} /></span><div><h3>Design tutor</h3><p>Ask about a concept or design decision.</p></div><ChevronRight size={17} />
+          <a className="panel course-teaser" href="#maang-hld">
+            <span className="small-icon purple"><Layers3 size={18} /></span><div><h3>MAANG HLD course</h3><p>30 interview questions and 20 core concepts.</p></div>
           </a>
         </div>
       </section>

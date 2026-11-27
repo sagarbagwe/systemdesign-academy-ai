@@ -18,7 +18,7 @@ function ArchitectureMap({ nodes, edges }: Pick<Draft, "nodes" | "edges">) {
   return (
     <svg className="architecture-map" viewBox={`0 0 288 ${Math.ceil(nodes.length / 2) * 53 + 6}`} role="img" aria-label="Architecture diagram showing components and directed connections">
       <defs><marker id={markerId} viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
-        <path d="M 0 0 L 10 5 L 0 10 z" fill="#a98bff" />
+        <path className="sketch-arrow" d="M 0 0 L 10 5 L 0 10 z" />
       </marker></defs>
       {edges.map((edge) => {
         const start = positions.get(edge.from);
@@ -30,13 +30,13 @@ function ArchitectureMap({ nodes, edges }: Pick<Draft, "nodes" | "edges">) {
         const offsetX = dx * scale;
         const offsetY = dy * scale;
         return <path key={edge.from + edge.to} d={`M ${start.x + offsetX} ${start.y + offsetY} L ${end.x - offsetX} ${end.y - offsetY}`}
-          stroke="#a98bff" strokeWidth="1.5" markerEnd={`url(#${markerId})`} />;
+          className="sketch-line" strokeWidth="1.5" markerEnd={`url(#${markerId})`} />;
       })}
       {nodes.map((node) => {
         const point = positions.get(node.id)!;
         return <g key={node.id}>
-          <rect x={point.x - 58} y={point.y - 15} width="116" height="30" rx="7" fill="#281f3f" stroke="#6b53a0" />
-          <text x={point.x} y={point.y} textAnchor="middle" dominantBaseline="central" fill="#e0d2ff" fontSize="12">{node.label}</text>
+          <rect className="sketch-node" x={point.x - 58} y={point.y - 15} width="116" height="30" rx="7" />
+          <text className="sketch-label" x={point.x} y={point.y} textAnchor="middle" dominantBaseline="central" fontSize="12">{node.label}</text>
         </g>;
       })}
     </svg>
