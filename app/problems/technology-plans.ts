@@ -1,4 +1,5 @@
 import { eventTicketsTechnology } from "./event-tickets";
+import { rideHailingTechnology } from "./ride-hailing";
 import type { TechnologyPlan } from "./types";
 
 export const technologyPlans: Record<string, TechnologyPlan> = {
@@ -1047,21 +1048,7 @@ export const technologyPlans: Record<string, TechnologyPlan> = {
       reason: "Allow rapid rollback while preserving each SDK's last validated rules.",
     },
   },
-  "ride-hailing": {
-    storage: {
-      technology: "PostgreSQL trip state and Redis GEO position index",
-      reason: "Keep assignment and trip transitions durable, and hold only current recent positions in a rebuildable index.",
-    },
-    routing: {
-      technology: "AWS Application Load Balancer (L7)",
-      reason: "Isolate location writes from rider trip APIs. Dispatch by service area and route the trip by ID.",
-    },
-    support: {
-      technology: "Kafka location stream",
-      reason: "Discard stale positions and offer a leased driver based on fresh candidate data.",
-    },
-    ingress: ["Location update", "Request ride"],
-  },
+  "ride-hailing": rideHailingTechnology,
   "maps-routing": {
     storage: {
       technology: "S3 tile objects and a versioned road graph store",

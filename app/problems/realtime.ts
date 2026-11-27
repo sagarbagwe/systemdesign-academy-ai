@@ -1,31 +1,8 @@
+import { rideHailing } from "./ride-hailing";
 import type { Problem } from "./types";
 
 export const realtime: Problem[] = [
-  {
-    id: "ride-hailing", title: "Design a Ride-Hailing Service", level: "Advanced", aliases: ["Uber", "Lyft", "cab booking"], concepts: ["Geo matching", "Trip state", "Offer leases"],
-    scenario: "Riders request trips while drivers move, accept offers and send updates.", requirements: ["Match a rider with an available driver.", "Track trip progress.", "Prevent duplicate driver assignment."],
-    capacity: "Two hundred thousand active drivers reporting every four seconds produce 50,000 updates/s. Booking requests need independent admission and latency goals.",
-    walkthrough: {
-      entities: ["Rider", "Driver", "Trip", "Expiring offer"],
-      qualityGoal: "Use fresh location and enforce exclusive assignments even when drivers accept after their offer expires.",
-      flow: ["Request ride", "Find available driver", "Query nearby drivers", "Expiring offer", "Commit leased assignment"],
-    },
-    diagram: [
-      ["Driver app", "Location ingest", "Location update"],
-      ["Location ingest", "Spatial index", "Update driver cell"],
-      ["Rider app", "Trip API", "Request ride"],
-      ["Trip API", "Dispatch engine", "Find available driver"],
-      ["Dispatch engine", "Spatial index", "Query nearby drivers"],
-      ["Dispatch engine", "Driver app", "Expiring offer", "async"],
-      ["Dispatch engine", "Trips database", "Commit leased assignment"],
-    ],
-    design: "Keep latest location in a spatial index and feed candidates to a bounded ETA ranker. Create expiring driver offers and commit accepted trips under conditional ownership checks.",
-    api: "POST /rides, POST /offers/{id}/accept, PATCH /trips/{id}/state and a trip updates stream.",
-    data: "DriverLocation(driverId, cell, timestamp), Trip(id, rider, driver, state), Offer(id, expiresAt, fence).",
-    reliability: "Discard stale locations and reject expired offers. Offer replacements only after fencing earlier leases. Operate a limited matching mode if ETAs fail.",
-    tradeoff: "Optimizing match batches can reduce pickup time overall but increases the wait before a rider gets an offer.",
-    followUp: "A stadium event creates a short spike in one neighborhood. Handle fairness and stale supply under load.",
-  },
+  rideHailing,
   {
     id: "maps-routing", title: "Design a Maps and Routing Platform", level: "Advanced", aliases: ["Google Maps", "navigation"], concepts: ["Map tiles", "Road graph", "Traffic weights"],
     scenario: "Users view maps and request directions with live travel times.", requirements: ["Serve versioned map tiles.", "Compute valid routes with restrictions.", "Refresh road speeds without rebuilding the whole map."],

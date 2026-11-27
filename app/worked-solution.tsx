@@ -5,7 +5,7 @@ import dynamic from "next/dynamic";
 import { useState } from "react";
 import { lessons, type Case } from "./catalog";
 import { Heading } from "./learning";
-import type { DesignConnection, WorkedAnswer } from "./problems/types";
+import type { DesignConnection, DesignSection, WorkedAnswer } from "./problems/types";
 
 const AnswerArchitecture = dynamic(() => import("./answer-architecture"), {
   loading: () => <p role="status">Loading design diagram…</p>,
@@ -21,6 +21,7 @@ const steps = [
 ] as const;
 
 type StepId = (typeof steps)[number]["id"];
+const inferredAnnotations = {};
 
 function stepLink(caseId: string, stepId: StepId) {
   return `#answer/${caseId}/${stepId}`;
@@ -45,7 +46,7 @@ function answerFlow({ diagram, walkthrough }: WorkedAnswer) {
 function DataFlow({ item }: { item: Case }) {
   const [visible, setVisible] = useState(1);
   const flow = answerFlow(item.answer);
-  const [from, to] = flow[visible - 1];
+  const [, to, action] = flow[visible - 1];
 
   return (
     <>
@@ -55,7 +56,8 @@ function DataFlow({ item }: { item: Case }) {
         <button type="button" className="button neutral" onClick={() => setVisible(visible - 1)} disabled={visible === 1}>Previous connection</button>
         <button type="button" className="button primary" onClick={() => setVisible(visible + 1)} disabled={visible === flow.length}>Next connection</button>
       </div>
-      <AnswerArchitecture title={item.title} label="data flow diagram" connections={flow.slice(0, visible)} />
+      <AnswerArchitecture title={item.title} label="data flow diagram" connections={flow.slice(0, visible)}
+        annotations={item.answer.details?.components ?? inferredAnnotations} />
       <ol className="walkthrough-flow">
         {flow.map(([origin, destination, action], index) => (
           <li key={action}>
@@ -66,19 +68,30 @@ function DataFlow({ item }: { item: Case }) {
           </li>
         ))}
       </ol>
-      <Explain>“At this point, I’d trace the arrow from {from} to {to}. I’d say what moves across it and whether we need to wait for a result.”</Explain>
+      <p className="flow-current"><strong>{action}</strong> → {to}</p>
     </>
   );
 }
 
 function Architecture({ item }: { item: Case }) {
   const { answer, technology } = item;
-  const [active, setActive] = useState<number | null>(null);
-  const sections = answer.details?.sections ?? [];
+  const { details } = answer;
+  const [active, setActive] = useState<number | null>(details?.sections.length ? 0 : null);
+  const primaryFlow = answerFlow(answer);
+  const sections: readonly DesignSection[] = details?.sections ?? (primaryFlow.length < answer.diagram.length ? [{
+    title: "Main request path",
+    description: "Trace the actions the core request takes through the system, then use the full diagram to discuss other paths.",
+    connections: primaryFlow.map((edge) => edge[2]),
+  }] : []);
   const section = active === null ? undefined : sections[active];
   const connections = section
     ? answer.diagram.filter((edge) => section.connections.includes(edge[2]))
     : answer.diagram;
+  const recordNames = new Set(section?.records);
+  const records = details?.records.filter(({ name, component }) => {
+    if (recordNames.size) return recordNames.has(name);
+    return !component || connections.some(([from, to]) => from === component || to === component);
+  });
   const choices = [
     { label: "Database and storage", ...technology.storage },
     { label: "Load balancing and routing", ...technology.routing },
@@ -88,6 +101,23 @@ function Architecture({ item }: { item: Case }) {
   return (
     <>
       <p>{answer.design}</p>
+      {sections.length > 0 && (
+        <>
+          <h3>Architecture views</h3>
+          <div className="design-view-controls" role="group" aria-label="Diagram views">
+            {sections.map((view, index) => (
+              <button type="button" key={view.title} className={`filter ${active === index ? "selected" : ""}`} aria-pressed={active === index} onClick={() => setActive(index)}>
+                {index + 1}. {view.title}
+              </button>
+            ))}
+            <button type="button" className={`filter ${active === null ? "selected" : ""}`} aria-pressed={active === null} onClick={() => setActive(null)}>Full system</button>
+          </div>
+          {section && <p>{section.description}</p>}
+        </>
+      )}
+      <AnswerArchitecture title={item.title} label={section?.title} connections={connections}
+        annotations={details?.components ?? inferredAnnotations} records={records} state={!section || !records?.length ? answer.data : undefined} />
+      {section?.say && <Explain>“{section.say}”</Explain>}
       <h3>Which technologies to use and why</h3>
       <dl className="technology-choices">
         {choices.map(({ label, technology, reason }) => (
@@ -97,30 +127,6 @@ function Architecture({ item }: { item: Case }) {
           </div>
         ))}
       </dl>
-      {sections.length > 0 && (
-        <>
-          <h3>Build the design one requirement at a time</h3>
-          <div className="design-view-controls" role="group" aria-label="Diagram views">
-            <button type="button" className={`filter ${active === null ? "selected" : ""}`} aria-pressed={active === null} onClick={() => setActive(null)}>Full system</button>
-            {sections.map((view, index) => (
-              <button type="button" key={view.title} className={`filter ${active === index ? "selected" : ""}`} aria-pressed={active === index} onClick={() => setActive(index)}>
-                {index + 1}. {view.title}
-              </button>
-            ))}
-          </div>
-          {section && <p>{section.description}</p>}
-        </>
-      )}
-      <AnswerArchitecture title={item.title} label={section?.title} connections={connections} />
-      <h3>Storage and state</h3>
-      <p>{answer.data}</p>
-      {answer.details?.records && (
-        <dl className="design-records">
-          {answer.details.records.map(({ name, key, purpose }) => (
-            <div key={name}><dt>{name}</dt><dd><code>{key}</code><p>{purpose}</p></dd></div>
-          ))}
-        </dl>
-      )}
     </>
   );
 }
@@ -258,11 +264,10 @@ export default function WorkedSolution({ item, stepId }: { item: Case; stepId?: 
         </div>
       )}
       <p className="walkthrough-reference">
-        {item.id === "event-tickets" ? (
-          <>Related interview example. <a className="text-link" href="https://www.hellointerview.com/learn/system-design/problem-breakdowns/ticketmaster" target="_blank" rel="noreferrer">Hello Interview’s public ticket-booking breakdown</a></>
-        ) : (
-          <>Step order adapted from <a className="text-link" href="https://www.hellointerview.com/learn/system-design/in-a-hurry/delivery" target="_blank" rel="noreferrer">Hello Interview’s public delivery framework</a>.</>
-        )}
+        {(item.answer.sources ?? [{
+          label: "Hello Interview’s public delivery framework",
+          href: "https://www.hellointerview.com/learn/system-design/in-a-hurry/delivery",
+        }]).map(({ label, href }) => <a key={href} className="text-link" href={href} target="_blank" rel="noreferrer">{label}</a>)}
       </p>
     </>
   );

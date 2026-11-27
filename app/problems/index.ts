@@ -7,6 +7,7 @@ import { data } from "./data";
 import { distributed } from "./distributed";
 import { eventTickets } from "./event-tickets";
 import { foundations } from "./foundations";
+import { pracHubProblems } from "./prachub-problems";
 import { realtime } from "./realtime";
 import { social } from "./social";
 import { starterAnswers } from "./starter";
@@ -64,29 +65,36 @@ function addLoadBalancer(answer: WorkedAnswer, technology: TechnologyPlan): Work
     return [[from, balancer, ingress], forwarded];
   });
 
-  const flow = [...new Set(answer.walkthrough.flow.flatMap((action) => {
+  const withIngress = (actions: readonly string[]) => [...new Set(actions.flatMap((action) => {
     const ingress = ingressByAction.get(action);
     return ingress ? [ingress, action] : [action];
   }))];
+  const details = answer.details && {
+    ...answer.details,
+    sections: answer.details.sections.map((section) => ({ ...section, connections: withIngress(section.connections) })),
+  };
 
-  return { ...answer, diagram, walkthrough: { ...answer.walkthrough, flow } };
+  return { ...answer, details, diagram, walkthrough: { ...answer.walkthrough, flow: withIngress(answer.walkthrough.flow) } };
 }
 
-function withTechnology(item: Omit<Case, "technology">): Case {
-  const technology = technologyPlans[item.id];
+function withTechnology(item: Omit<Case, "technology">, technology = technologyPlans[item.id]): Case {
   if (!technology) throw new Error(`Missing technology plan for ${item.id}`);
   return { ...item, technology, answer: addLoadBalancer(item.answer, technology) };
 }
 
 export const cases: Case[] = [
-  ...starterCases.map((item) => {
-    const { topic, aliases = [], ...answer } = starterAnswers[item.id];
-    return { ...item, topic, aliases, answer };
-  }),
-  ...(Object.keys(topics) as Topic[]).flatMap((topic) => metadata[topic].entries.map((problem) => toCase(problem, topic))),
-  ...courseProblems.map(({ topic, ...problem }) => toCase(problem, topic)),
-  toCase(eventTickets, "commerce"),
-].map(withTechnology);
+  ...[
+    ...starterCases.map((item) => {
+      const { topic, aliases = [], ...answer } = starterAnswers[item.id];
+      return { ...item, topic, aliases, answer };
+    }),
+    ...(Object.keys(topics) as Topic[]).flatMap((topic) => metadata[topic].entries.map((problem) => toCase(problem, topic))),
+    ...courseProblems.map(({ topic, ...problem }) => toCase(problem, topic)),
+    toCase(eventTickets, "commerce"),
+  ].map((item) => withTechnology(item)),
+  ...pracHubProblems.map(({ topic, technology, aliases = [], ...problem }) =>
+    withTechnology(toCase({ ...problem, aliases: ["PracHub", ...aliases] }, topic), technology)),
+];
 
 const syllabusNames = new Map(courseQuestions.map(({ problem, name }) => [problem, name]));
 

@@ -35,6 +35,7 @@ export function PracticeHub({ filters, setFilters }: { filters: HubFilters; setF
   return (
     <>
       <Heading title="Practice Hub" description={`Browse ${cases.length} system design problems. Try a design or study its worked answer.`} />
+      <p className="practice-source-link"><a className="text-link" href="#study/prachub">Browse PracHub study topics</a></p>
       <div className="panel hub-toolbar">
         <div className="hub-fields">
           <label className="hub-search">

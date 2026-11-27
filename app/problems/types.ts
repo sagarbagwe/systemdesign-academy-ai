@@ -36,18 +36,30 @@ export type DesignSection = {
   title: string;
   description: string;
   connections: readonly string[];
+  say?: string;
+  records?: readonly string[];
+};
+
+export type DesignRecord = {
+  name: string;
+  key: string;
+  purpose: string;
+  component?: string;
+  fields?: readonly string[];
 };
 
 export type DesignDetails = {
   assumptions: string;
   endpoints: readonly { request: string; result: string }[];
-  records: readonly { name: string; key: string; purpose: string }[];
+  records: readonly DesignRecord[];
   sections: readonly DesignSection[];
   deepDives: readonly { title: string; answer: string }[];
+  components?: Readonly<Record<string, readonly string[]>>;
 };
 
 export type WorkedAnswer = {
   details?: DesignDetails;
+  sources?: readonly { label: string; href: string }[];
   walkthrough: AnswerWalkthrough;
   capacity: string;
   diagram: readonly DesignConnection[];

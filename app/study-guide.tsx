@@ -5,7 +5,9 @@ import dynamic from "next/dynamic";
 import { useState } from "react";
 import { Heading } from "./learning";
 import { cases, matchesSearch } from "./problems";
+import { pracHubCategory, pracHubProblems } from "./problems/prachub-problems";
 import { courseQuestions, courseSource, studyTopics } from "./study";
+import { pracHubCasebook, pracHubFoundations, pracHubStudyMap } from "./study/prachub";
 import { studyGroups, type StudyGroup, type StudyTopic } from "./study/types";
 
 const AnswerArchitecture = dynamic(() => import("./answer-architecture"), {
@@ -25,6 +27,8 @@ const entries = [
     name, summary: cases.find((item) => item.id === problem)?.title ?? "",
     group: "problems" as const, href: `#answer/${problem}`,
   })),
+  ...pracHubProblems.map(({ title, id, scenario }) => ({ name: title, summary: scenario, group: "problems" as const, href: `#answer/${id}` })),
+  ...pracHubStudyMap.map((topic) => ({ ...topic, group: "prachub" as const })),
 ];
 
 export function StudyGuide({ groupId }: { groupId?: string }) {
@@ -34,7 +38,7 @@ export function StudyGuide({ groupId }: { groupId?: string }) {
 
   return (
     <>
-      <Heading title="Interview study guide" description={`Learn ${studyTopics.length} topics and work through all ${courseQuestions.length} questions in the linked course outline.`} />
+      <Heading title="Interview study guide" description={`Learn ${studyTopics.length} topics and practice ${courseQuestions.length + pracHubProblems.length} questions mapped from Hello Interview and PracHub.`} />
       {!group && <section className="panel reading-card study-plan">
         <h2>How to study</h2>
         <p>For a 30-minute session, spend five minutes reviewing a topic, ten drawing a design, ten explaining it aloud, and five checking a mistake or trade-off.</p>
@@ -73,7 +77,12 @@ export function StudyGuide({ groupId }: { groupId?: string }) {
           );
         })}
       </section>
-      <p className="walkthrough-reference">The study guide follows the published topic list. <a className="text-link" href={courseSource} target="_blank" rel="noreferrer">Hello Interview course outline</a></p>
+      <p className="walkthrough-reference">
+        <a className="text-link" href={courseSource} target="_blank" rel="noreferrer">Hello Interview course outline</a>
+        <a className="text-link" href={pracHubFoundations} target="_blank" rel="noreferrer">PracHub foundations outline</a>
+        <a className="text-link" href={pracHubCasebook} target="_blank" rel="noreferrer">PracHub casebook outline</a>
+        <a className="text-link" href={pracHubCategory} target="_blank" rel="noreferrer">PracHub system design questions</a>
+      </p>
     </>
   );
 }
