@@ -9,6 +9,7 @@ import { api, ApiError, hasAccountServer, type Account, type Capabilities, type 
 import { lessons, tracks, type TrackId } from "./catalog";
 import { cases, caseSearchText, matchesSearch } from "./problems";
 import { CaseLibrary, Dashboard, Heading, Learning, LessonPage } from "./learning";
+import { MaangHldCourse } from "./maang-hld-course";
 import { blankDraft, draftId, emptyProgress, loadProgress, reviewDraft, storageKey, type Attempt, type Draft, type Mode, type Progress } from "./model";
 import { Settings, Tutor } from "./options";
 import { PracticeEditor, ProgressPage, ProjectPage, Report } from "./practice";
@@ -22,6 +23,7 @@ const menus = [
     { route: "overview", title: "Overview", icon: LayoutDashboard },
     { route: "learn", title: "Learning paths", icon: BookOpen },
     { route: "study", title: "Interview study guide", icon: GraduationCap },
+    { route: "maang-hld", title: "MAANG HLD course", icon: Layers3 },
     { route: "practice", title: "Practice Hub", icon: Target },
     { route: "projects", title: "Build projects", icon: CodeXml },
   ] },
@@ -201,6 +203,7 @@ export default function Workspace() {
   if (view === "overview") content = <Dashboard progress={progress} />;
   if (view === "learn") content = <Learning progress={progress} chooseTrack={chooseTrack} />;
   if (view === "study") content = <StudyGuide groupId={id} />;
+  if (view === "maang-hld") content = <MaangHldCourse sectionId={id} />;
   if (view === "study-topic") {
     const topic = studyTopics.find((entry) => entry.id === id);
     if (topic) content = <StudyTopicPage item={topic} />;

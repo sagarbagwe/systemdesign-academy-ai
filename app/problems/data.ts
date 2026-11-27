@@ -115,7 +115,7 @@ export const data: Problem[] = [
     ],
     design: "Chunk files, upload missing chunks, and commit a manifest with a base document revision. Push change cursors to devices and retain conflict copies when independent edits cannot merge.",
     api: "POST /chunks/missing, PUT /chunks/{hash}, POST /files/{id}/versions and GET /changes?cursor=.",
-    data: "File(id, parentId, name, revision, tombstone), version manifests and workspace-scoped access metadata.",
+    data: "File(fileId, workspaceId, parentId, name, revision, deletedAt), Manifest(fileId, revision, orderedChunkHashes), AccessGrant(fileId, principalId, role), and Change(workspaceId, sequence, fileId, revision, operation). Route metadata by workspace and keep chunk access scoped to that workspace.",
     reliability: "Log moves and tombstones durably. Verify content checksums and reconcile after cursor expiry with a workspace snapshot.",
     tradeoff: "Content-defined chunks tolerate insertions better than fixed chunks. They use more client CPU and complicate interoperability.",
     followUp: "A user renames a file while a disconnected device edits it. Preserve both intentions.",

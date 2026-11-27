@@ -39,6 +39,7 @@ export function StudyGuide({ groupId }: { groupId?: string }) {
   return (
     <>
       <Heading title="Interview study guide" description={`Learn ${studyTopics.length} topics and practice ${courseQuestions.length + pracHubProblems.length} questions mapped from Hello Interview and PracHub.`} />
+      <p className="practice-source-link"><a className="text-link" href="#maang-hld">Open the MAANG HLD course</a></p>
       {!group && <section className="panel reading-card study-plan">
         <h2>How to study</h2>
         <p>For a 30-minute session, spend five minutes reviewing a topic, ten drawing a design, ten explaining it aloud, and five checking a mistake or trade-off.</p>

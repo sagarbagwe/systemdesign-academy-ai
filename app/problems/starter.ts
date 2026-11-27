@@ -106,7 +106,7 @@ export const starterAnswers: Record<string, WorkedAnswer & { topic: Topic; alias
     ],
     design: "Validate membership and append a message to the conversation log before acknowledging it. Use a cursor per device to catch up after reconnect. Deliver online messages through socket gateways and send push notifications separately.",
     api: "POST /conversations/{id}/messages accepts a client message ID. GET /conversations/{id}/messages?after={sequence} fetches missed messages.",
-    data: "Partition messages by conversation ID and order by an assigned sequence. Keep membership and device delivery cursors separately.",
+    data: "Conversation(id, ownerId, nextSequence), Member(conversationId, userId, role, joinedAt), Message(conversationId, sequence, senderId, clientMessageId, ciphertext), and DeliveryCursor(conversationId, deviceId, deliveredThrough, readThrough). Partition messages by conversation and order by sequence. Deduplicate sends by conversation, sender and clientMessageId.",
     reliability: "Acknowledge only after durable append. Deduplicate by sender and client message ID. On delivery gaps, clients fetch from their last confirmed sequence.",
     tradeoff: "Fan-out on write keeps small chats fresh. For large groups, share one durable log and deliver on read to avoid writing a full inbox copy for each member.",
   },

@@ -449,7 +449,7 @@ select { appearance: none; padding-right: 28px; background-image: linear-gradien
 .study-plan li { padding: 12px; margin: 0; border: 1px solid var(--border); border-radius: 9px; background: #141423; }
 .study-plan li h3, .study-plan li p { margin: 0 0 7px; }
 .study-library > h2 { margin-bottom: 12px; }
-.practice-source-link { margin: -8px 0 16px; font-size: .88rem; }
+.practice-source-link { display: flex; flex-wrap: wrap; gap: 8px 18px; margin: -8px 0 16px; font-size: .88rem; }
 .study-library .filters { margin-bottom: 12px; }
 .study-search { max-width: 450px; }
 .study-count { margin: 9px 0; }
@@ -460,6 +460,21 @@ select { appearance: none; padding-right: 28px; background-image: linear-gradien
 .study-entries a { display: grid; gap: 3px; padding: 8px; border-radius: 8px; min-height: 55px; }
 .study-entries a:hover { background: #251c38; }
 .study-entries span { color: var(--muted); font-size: .86rem; }
+.hld-nav { margin-bottom: 16px; }
+.hld-section { margin-bottom: 16px; }
+.reading-card .hld-questions, .reading-card .hld-sequence { margin: 0; padding-left: 24px; }
+.reading-card .hld-questions > li, .reading-card .hld-sequence > li { border-top: 1px solid var(--border-subtle); padding: 10px 0 10px 6px; margin: 0; }
+.hld-questions > li::marker, .hld-sequence > li::marker { color: var(--accent-light); font-variant-numeric: tabular-nums; }
+.hld-question-content { display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 8px 18px; }
+.hld-question-content .button { gap: 6px; white-space: nowrap; }
+.hld-question-content h3, .hld-sequence h3 { margin: 0 0 3px; }
+.hld-question-content p, .hld-sequence li p { margin: 0; }
+.hld-question-content .text-link { margin-top: 4px; }
+.hld-section .hld-sequence + a { margin-top: 12px; }
+.hld-companies { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 235px), 1fr)); gap: 10px; }
+.hld-companies > section { padding: 12px; border: 1px solid var(--border); border-radius: 8px; }
+.hld-companies h3, .hld-companies p, .hld-companies ul { margin: 0 0 6px; }
+.hld-companies li { margin-bottom: 3px; }
 @media (max-width: 1100px) { .walkthrough-nav ol { grid-template-columns: repeat(3, minmax(0, 1fr)); } }
 @media (max-width: 610px) {
   .walkthrough-nav ol { grid-template-columns: repeat(2, minmax(0, 1fr)); }

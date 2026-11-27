@@ -48,7 +48,7 @@ export const realtime: Problem[] = [
     ],
     design: "Quote a versioned menu and price, send a bounded acceptance request, and dispatch near the estimated prep time. Maintain independent state for payment, kitchen and delivery.",
     api: "POST /orders, POST /orders/{id}/accept, POST /offers/{id}/accept and GET /orders/{id}/tracking.",
-    data: "Order, MenuVersion, RestaurantDecision, DeliveryOffer and normalized tracking events.",
+    data: "Order(orderId, customerId, restaurantId, menuVersion, state, version), RestaurantDecision(orderId, accepted, readyBy), DeliveryOffer(offerId, orderId, courierId, state, expiresAt), and TrackingEvent(orderId, sequence, status, occurredAt). Project display status from the latest ordered event.",
     reliability: "Time out unaccepted orders, reconcile duplicate callbacks, and compensate canceled orders through durable state transitions.",
     tradeoff: "Early driver assignment has better pickup readiness but risks paid waiting when a kitchen falls behind.",
     followUp: "Several restaurants lose connectivity at peak. Keep promises accurate and avoid assigning couriers to unconfirmed orders.",

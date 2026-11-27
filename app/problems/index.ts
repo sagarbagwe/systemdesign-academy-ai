@@ -1,5 +1,6 @@
 import { starterCases, type Case, type Level } from "../catalog";
 import { courseQuestions } from "../study/course-questions";
+import { hldQuestions } from "../study/maang-hld";
 import { ai } from "./ai";
 import { commerce } from "./commerce";
 import { courseProblems } from "./course-problems";
@@ -7,6 +8,7 @@ import { data } from "./data";
 import { distributed } from "./distributed";
 import { eventTickets } from "./event-tickets";
 import { foundations } from "./foundations";
+import { hldProblems } from "./hld-problems";
 import { pracHubProblems } from "./prachub-problems";
 import { realtime } from "./realtime";
 import { social } from "./social";
@@ -94,13 +96,21 @@ export const cases: Case[] = [
   ].map((item) => withTechnology(item)),
   ...pracHubProblems.map(({ topic, technology, aliases = [], ...problem }) =>
     withTechnology(toCase({ ...problem, aliases: ["PracHub", ...aliases] }, topic), technology)),
+  ...hldProblems.map(({ topic, technology, ...problem }) => withTechnology(toCase(problem, topic), technology)),
 ];
 
 const syllabusNames = new Map(courseQuestions.map(({ problem, name }) => [problem, name]));
+const hldNames = new Map<string, string[]>();
+for (const { problem, title } of hldQuestions) {
+  const names = hldNames.get(problem) ?? [];
+  names.push(title);
+  hldNames.set(problem, names);
+}
 
 export function caseSearchText(item: Case) {
   const designType = item.topic === "foundations" ? "low level design LLD" : "high level design HLD";
-  return [item.title, syllabusNames.get(item.id), item.summary, item.scenario, topics[item.topic], designType, item.level, ...item.concepts, ...item.aliases].join(" ");
+  return [item.title, syllabusNames.get(item.id), ...(hldNames.get(item.id) ?? []), item.summary, item.scenario, topics[item.topic],
+    designType, item.level, ...item.concepts, ...item.aliases].join(" ");
 }
 
 export function matchesSearch(haystack: string, query: string) {
